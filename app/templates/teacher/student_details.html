@@ -1,0 +1,121 @@
+{% extends "teacher/base.html" %}
+
+{% block title %}Student Details - EduQuest{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Back button and header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <a href="{{ url_for('teacher.students') }}" class="btn btn-outline-secondary me-2">
+                <i class="fas fa-arrow-left"></i> Back to Students
+            </a>
+            <h1 class="h3 d-inline-block">Student Details</h1>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Student Information Card -->
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Student Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="fw-bold">Student ID:</label>
+                        <p>{{ student.student_id }}</p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="fw-bold">Name:</label>
+                        <p>{{ student.username }}</p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="fw-bold">Email:</label>
+                        <p>{{ student.email }}</p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="fw-bold">Phone Number:</label>
+                        <p>{{ student.phone_number or 'Not provided' }}</p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="fw-bold">College:</label>
+                        <p>{{ student.college_name or 'Not provided' }}</p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="fw-bold">Class:</label>
+                        <p>{% if student.class_info %}{{ student.class_info.name }}{% else %}Not Assigned{% endif %}</p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="fw-bold">Joined:</label>
+                        <p>{{ student.created_at.strftime('%B %d, %Y') }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Exam Submissions -->
+        <div class="col-md-8 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Exam Submissions</h5>
+                </div>
+                <div class="card-body">
+                    {% if submissions %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Exam</th>
+                                    <th>Submitted</th>
+                                    <th>Score</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for submission in submissions %}
+                                <tr>
+                                    <td>{{ submission.exam_title }}</td>
+                                    <td>{{ submission.submitted_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    <td>
+                                        {% if submission.is_graded %}
+                                            {{ submission.score }}
+                                        {% else %}
+                                            Not graded
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if submission.is_graded %}
+                                            <span class="badge bg-success">Graded</span>
+                                        {% else %}
+                                            <span class="badge bg-warning">Pending</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('teacher.view_submission', submission_id=submission.id) }}" 
+                                           class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-eye"></i> View
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
+                        <h5>No Submissions Yet</h5>
+                        <p class="text-muted">This student hasn't submitted any exams.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% endblock %} 

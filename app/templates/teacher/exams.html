@@ -1,0 +1,97 @@
+{% extends "teacher/base.html" %}
+
+{% block title %}My Exams - EduQuest{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3">My Exams</h1>
+        <a href="{{ url_for('teacher.create_exam') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Create New Exam
+        </a>
+    </div>
+
+    {% if exams %}
+    <div class="row">
+        {% for exam in exams %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <h5 class="card-title mb-0">{{ exam.title }}</h5>
+                        <div>
+                            <span class="badge {% if exam.is_active %}bg-success{% else %}bg-secondary{% endif %} me-1">
+                                {{ 'Active' if exam.is_active else 'Inactive' }}
+                            </span>
+                            <span class="badge bg-info me-1">
+                                Self-paced
+                            </span>
+                            <span class="badge {% if exam.exam_format == 'objective' %}bg-warning{% else %}bg-info{% endif %}">
+                                {{ 'Objective' if exam.exam_format == 'objective' else 'Subjective' }}
+                            </span>
+                        </div>
+                    </div>
+                    <p class="card-text text-muted">{{ exam.description[:100] }}{% if exam.description|length > 100 %}...{% endif %}</p>
+                    <div class="mb-3">
+                        <small class="text-muted">
+                            <i class="fas fa-clock"></i> Duration: {{ exam.duration }} minutes<br>
+                            <i class="fas fa-star"></i> Total Marks: {{ exam.total_marks }}<br>
+                            <i class="fas fa-calendar"></i> Due: {{ exam.end_time.strftime('%B %d, %Y %H:%M') }}
+                        </small>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="btn-group">
+                            <a href="{{ url_for('teacher.exam_details', exam_id=exam.id) }}" class="btn btn-sm btn-primary">
+                                <i class="fas fa-eye"></i> View
+                            </a>
+                            <a href="{{ url_for('teacher.manage_questions', exam_id=exam.id) }}" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-list"></i> Questions
+                            </a>
+                            <a href="{{ url_for('teacher.export_excel', exam_id=exam.id) }}" class="btn btn-sm btn-outline-success" title="Export Student Data & Results">
+                                <i class="fas fa-file-excel"></i> Export
+                            </a>
+                            <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteExamModal{{ exam.id }}">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Delete Modal -->
+        <div class="modal fade" id="deleteExamModal{{ exam.id }}" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Delete Exam</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        Are you sure you want to delete "{{ exam.title }}"?
+                        This action cannot be undone.
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <form action="{{ url_for('teacher.delete_exam', exam_id=exam.id) }}" method="POST" class="d-inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-danger">Delete</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-5">
+        <i class="fas fa-file-alt fa-3x text-muted mb-3"></i>
+        <h3>No Exams Yet</h3>
+        <p class="text-muted">Create your first exam to get started!</p>
+        <a href="{{ url_for('teacher.create_exam') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Create New Exam
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %} 

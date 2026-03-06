@@ -1,0 +1,218 @@
+/* Exam interface styles */
+:root {
+    --primary-color: #2d62d6;
+    --secondary-color: #43a047;
+    --light-bg: #f8f9fa;
+    --dark-bg: #343a40;
+}
+
+/* Sidebar styles */
+.sidebar {
+    background-color: var(--dark-bg);
+    color: white;
+    height: calc(100vh - 60px);
+    overflow-y: auto;
+}
+
+.camera-container {
+    position: relative;
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+#webcam {
+    width: 100%;
+    height: 150px;
+    background-color: #000;
+    border-radius: 5px;
+    object-fit: cover;
+}
+
+.camera-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    border-radius: 5px;
+}
+
+.camera-icon {
+    font-size: 2rem;
+    margin-bottom: 10px;
+}
+
+.camera-message {
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+/* Question navigation */
+.question-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 25px;
+}
+
+.question-btn {
+    width: 35px;
+    height: 35px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background-color: #ffffff;
+    border: 1px solid #ccc;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.question-btn:hover {
+    background-color: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+.question-btn.active {
+    background-color: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+.question-btn.answered {
+    background-color: var(--secondary-color);
+    color: white;
+    border-color: var(--secondary-color);
+}
+
+/* Status indicators */
+.status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: 15px;
+}
+
+.indicator {
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+}
+
+.answered {
+    background-color: var(--secondary-color);
+}
+
+.unanswered {
+    background-color: #ffffff;
+    border: 1px solid #ccc;
+}
+
+/* Main exam area */
+.main-exam-area {
+    height: calc(100vh - 60px);
+    overflow-y: auto;
+    padding: 20px;
+    background-color: var(--light-bg);
+}
+
+.timer-display {
+    font-family: monospace;
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--secondary-color);
+}
+
+.question-container {
+    border-left: 4px solid var(--secondary-color);
+    background-color: #fff;
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.toggle-questions-btn {
+    border-radius: 50px;
+    padding: 8px 16px;
+    background-color: var(--primary-color);
+    color: white;
+}
+
+/* Form elements */
+.form-check-input:checked {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.form-control:focus {
+    border-color: var(--secondary-color);
+    box-shadow: 0 0 0 0.25rem rgba(67, 97, 238, 0.25);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .sidebar {
+        position: fixed;
+        z-index: 1000;
+        width: 80%;
+        left: 0;
+        top: 60px;
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+    }
+    
+    .sidebar.show {
+        transform: translateX(0);
+    }
+    
+    .main-exam-area {
+        width: 100%;
+    }
+}
+
+/* AI Proctoring elements */
+.detection-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 5;
+}
+
+.proctoring-status {
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+    background-color: rgba(0, 0, 0, 0.6);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 10px;
+    z-index: 10;
+}
+
+.metrics-container {
+    margin-top: 5px;
+    font-size: 9px;
+}
+
+.metric {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 2px;
+}
+
+.metric-label {
+    color: #ccc;
+}
+
+.metric-value {
+    font-weight: bold;
+} 

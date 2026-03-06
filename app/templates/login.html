@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduQuest - Login</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .login-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .split-container {
+            display: flex;
+            width: 900px;
+            height: 600px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .info-side {
+            flex: 1;
+            background: linear-gradient(135deg, #6B73FF 0%, #000DFF 100%);
+            color: white;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+        .form-side {
+            flex: 1;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+        .role-switch {
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+        .role-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .role-btn.active {
+            background: #000DFF;
+            color: white;
+        }
+        .role-btn:not(.active) {
+            background: #f8f9fa;
+            color: #000DFF;
+        }
+        .form-control {
+            border-radius: 20px;
+            padding: 12px 20px;
+            margin-bottom: 15px;
+        }
+        .btn-login {
+            border-radius: 20px;
+            padding: 12px;
+            background: #000DFF;
+            border: none;
+            color: white;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        .btn-login:hover {
+            background: #0009cc;
+        }
+        .flash-messages {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="split-container">
+            <div class="info-side">
+                <h1 class="mb-4">Welcome to EduQuest</h1>
+                <p class="mb-4">Your comprehensive online examination platform for seamless learning and assessment.</p>
+                <div class="features">
+                    <h5>Features:</h5>
+                    <ul>
+                        <li>Secure Exam Environment</li>
+                        <li>Real-time Proctoring</li>
+                        <li>Automated Grading</li>
+                        <li>Detailed Analytics</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="form-side">
+                <div class="role-switch">
+                    <button type="button" class="btn btn-outline-primary active" data-role="student">Student</button>
+                    <button type="button" class="btn btn-outline-primary" data-role="teacher">Teacher</button>
+                </div>
+                <h2 class="text-center mb-4">Login</h2>
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        <div class="flash-messages">
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ category }}">{{ message }}</div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                {% endwith %}
+                <form method="POST" action="{{ url_for('auth.login') }}">
+                    <input type="hidden" name="role" id="role" value="student">
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email/Username</label>
+                        <input type="text" class="form-control" id="email" name="email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="password" name="password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Login</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const roleButtons = document.querySelectorAll('.role-switch button');
+            const roleInput = document.getElementById('role');
+            const emailLabel = document.querySelector('label[for="email"]');
+            
+            roleButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    roleButtons.forEach(btn => btn.classList.remove('active'));
+                    this.classList.add('active');
+                    roleInput.value = this.dataset.role;
+                    emailLabel.textContent = this.dataset.role === 'student' ? 'Email' : 'Username';
+                });
+            });
+        });
+    </script>
+</body>
+</html> 

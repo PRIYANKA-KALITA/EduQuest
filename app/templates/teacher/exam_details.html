@@ -1,0 +1,335 @@
+{% extends "teacher/base.html" %}
+
+{% block title %}Exam Details - {{ exam.title }} - EduQuest{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Exam Settings Card -->
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Exam Settings</h5>
+            <div>
+                <span class="badge {% if exam.is_active %}bg-success{% else %}bg-secondary{% endif %} me-2">
+                    {{ 'Active' if exam.is_active else 'Inactive' }}
+                </span>
+                <span class="badge bg-info me-2">
+                    Self-paced
+                </span>
+                <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal"
+                    data-bs-target="#editExamModal">
+                    <i class="fas fa-edit"></i> Edit Settings
+                </button>
+                <a href="{{ url_for('teacher.export_excel', exam_id=exam.id) }}" class="btn btn-success btn-sm ms-1">
+                    <i class="fas fa-file-excel"></i> Export Excel
+                </a>
+                <button type="button" class="btn btn-danger btn-sm ms-1"
+                    onclick="confirmDeleteExam('{{ exam.id }}', '{{ exam.title }}')">
+                    <i class="fas fa-trash"></i> Delete Exam
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>Title:</strong> {{ exam.title }}</p>
+                    <p><strong>Description:</strong> {{ exam.description }}</p>
+                    <p><strong>Duration:</strong> {{ exam.duration }} minutes</p>
+                    <p><strong>Total Marks:</strong> {{ exam.total_marks or 0 }}</p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>Due Date:</strong> {{ exam.end_time.strftime('%Y-%m-%d %H:%M') if exam.end_time else 'Not
+                        set' }}</p>
+                    <p><strong>Questions to Display:</strong> {{ exam.num_questions_to_display or 'All' }} out of {{
+                        exam.total_questions }}</p>
+                    <p><strong>Class:</strong> {{ class_name }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="card-title">Total Submissions</h6>
+                    <h2 class="mb-0">{{ total_submissions }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="card-title">Completed</h6>
+                    <h2 class="mb-0">{{ completed_submissions }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="card-title">Average Score</h6>
+                    <h2 class="mb-0">{{ "%.1f"|format(average_score|float) }}%</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="card-title">Questions</h6>
+                    <h2 class="mb-0">{{ questions_attended }}</h2>
+                    <small class="text-muted">Questions Attended</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Actions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-success">
+                <div class="card-header bg-success text-white">
+                    <h6 class="mb-0"><i class="fas fa-download"></i> Export Data</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <p class="mb-2"><strong>Generate comprehensive Excel report including:</strong></p>
+                            <ul class="mb-0">
+                                <li>Exam summary and statistics</li>
+                                <li>Student results with scores and pass/fail status</li>
+                                <li>Question-wise analysis and success rates</li>
+                                <li>Detailed submission breakdown</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <a href="{{ url_for('teacher.export_excel', exam_id=exam.id) }}" class="btn btn-success">
+                                <i class="fas fa-file-excel"></i> Download Excel Report
+                            </a>
+                            <small class="d-block text-muted mt-2">
+                                <i class="fas fa-info-circle"></i> Multi-sheet Excel file
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Submissions -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Recent Submissions</h5>
+            <a href="{{ url_for('teacher.export_excel', exam_id=exam.id) }}" class="btn btn-success btn-sm"
+                title="Export Student Data & Submissions">
+                <i class="fas fa-file-excel"></i> Export Student Data
+            </a>
+        </div>
+        <div class="card-body">
+            {% if recent_submissions %}
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Student Name</th>
+                            <th>ID</th>
+                            <th>Status</th>
+                            <th>Date</th>
+                            <th>Class</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for submission in recent_submissions %}
+                        <tr>
+                            <td>{{ submission.student_name }}</td>
+                            <td>{{ submission.student_pid }}</td>
+                            <td>
+                                <span
+                                    class="badge {% if submission.is_graded %}bg-success{% else %}bg-warning{% endif %}">
+                                    {{ 'Graded' if submission.is_graded else 'Pending' }}
+                                </span>
+                            </td>
+                            <td>{{ submission.submitted_at.strftime('%Y-%m-%d %H:%M') if submission.submitted_at else
+                                'N/A' }}</td>
+                            <td>{{ submission.class_name }}</td>
+                            <td>
+                                {% if submission.student_obj_id %}
+                                <a href="{{ url_for('teacher.view_student', student_id=submission.student_obj_id) }}"
+                                    class="btn btn-sm btn-primary">
+                                    View
+                                </a>
+                                {% else %}
+                                <button class="btn btn-sm btn-secondary" disabled>View</button>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-muted text-center mb-0">No submissions yet.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Delete Exam Modal -->
+<div class="modal fade" id="deleteExamModal" tabindex="-1" aria-labelledby="deleteExamModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteExamModalLabel">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete the exam "<span id="deleteExamTitle"></span>"?</p>
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <strong>Warning:</strong> This action cannot be undone. All associated submissions will also be
+                    deleted.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="deleteExamForm" method="POST" style="display: inline;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash"></i> Delete Exam
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Exam Modal -->
+<div class="modal fade" id="editExamModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Exam Settings</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ url_for('teacher.update_exam', exam_id=exam.id) }}" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Exam Title</label>
+                        <input type="text" class="form-control" name="title" value="{{ exam.title }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-control" name="description" rows="3">{{ exam.description }}</textarea>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Duration (minutes)</label>
+                            <input type="number" class="form-control" name="duration" value="{{ exam.duration }}"
+                                min="1" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Total Marks</label>
+                            <input type="number" class="form-control" name="total_marks"
+                                value="{{ exam.total_marks or 0 }}" min="1" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Exam Type</label>
+                        <input type="text" class="form-control" value="Self-paced" readonly>
+                        <input type="hidden" name="exam_type" value="self_paced">
+                    </div>
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="activeToggle" name="is_active" {% if
+                            exam.is_active %}checked{% endif %}>
+                        <label class="form-check-label" for="activeToggle">Active</label>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Select Class</label>
+                        <select class="form-select" name="class_id">
+                            <option value="">No Class (Available to all)</option>
+                            {% for class in classes %}
+                            <option value="{{ class.id }}" {% if exam.class_id==class.id %}selected{% endif %}>{{
+                                class.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Due Date</label>
+                        <input type="datetime-local" class="form-control" name="end_time"
+                            value="{{ exam.end_time.strftime('%Y-%m-%dT%H:%M') if exam.end_time else '' }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Number of Questions to Display (Required)</label>
+                        <div class="input-group">
+                            <input type="number" class="form-control" name="num_questions_to_display"
+                                value="{{ exam.num_questions_to_display }}" min="1" required>
+                            <span class="input-group-text">out of {{ exam.total_questions }} questions in pool</span>
+                        </div>
+                        <small class="text-muted">This value determines marks per question (Total Marks / Questions to Display).</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function confirmDeleteExam(examId, examTitle) {
+        // Set the exam title in the modal
+        document.getElementById('deleteExamTitle').textContent = examTitle;
+
+        // Set the form action URL
+        document.getElementById('deleteExamForm').action = '/teacher/exam/' + examId + '/delete';
+
+        // Show the modal
+        var deleteModal = new bootstrap.Modal(document.getElementById('deleteExamModal'));
+        deleteModal.show();
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const examTypeSelect = document.getElementById('editExamType');
+        const startTimeInput = document.getElementById('editStartTime');
+        const endTimeLabel = document.getElementById('editEndTimeLabel');
+        const scheduledElements = document.querySelectorAll('.scheduled-only');
+        const editForm = document.querySelector('#editExamModal form');
+
+        function updateFormFields() {
+            const isScheduled = examTypeSelect.value === 'scheduled';
+
+            // Show/hide scheduled-only fields
+            scheduledElements.forEach(el => {
+                el.style.display = isScheduled ? 'block' : 'none';
+            });
+
+            // Update start time requirement
+            startTimeInput.required = isScheduled;
+
+            // Update end time label
+            endTimeLabel.textContent = isScheduled ? 'End Time' : 'Due Date';
+        }
+
+        examTypeSelect.addEventListener('change', updateFormFields);
+
+        // Format date to YYYY-MM-DD HH:MM format
+        function formatDate(dateString) {
+            if (!dateString) return '';
+            const date = new Date(dateString);
+            return date.getFullYear() + '-' +
+                String(date.getMonth() + 1).padStart(2, '0') + '-' +
+                String(date.getDate()).padStart(2, '0') + ' ' +
+                String(date.getHours()).padStart(2, '0') + ':' +
+                String(date.getMinutes()).padStart(2, '0');
+        }
+
+        examTypeSelect.addEventListener('change', updateFormFields);
+    });
+</script>
+{% endblock %}

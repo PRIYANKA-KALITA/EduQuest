@@ -1,0 +1,472 @@
+{% extends "teacher/base.html" %}
+
+{% block title %}Submission Details - EduQuest{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Back button and header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <a href="{{ url_for('teacher.view_student', student_id=student.id) }}" class="btn btn-outline-secondary me-2">
+                <i class="fas fa-arrow-left"></i> Back to Student
+            </a>
+            <h1 class="h3 d-inline-block">Submission Details</h1>
+        </div>
+        {% if not submission.is_graded and exam.exam_format == 'subjective' %}
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#gradeModal">
+            <i class="fas fa-check"></i> Grade Submission
+        </button>
+        {% endif %}
+    </div>
+
+    <div class="row">
+        <!-- Submission Information -->
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Submission Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="fw-bold">Student:</label>
+                        <p>{{ student.username }}</p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="fw-bold">Exam:</label>
+                        <p>{{ exam.title }}</p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="fw-bold">Exam Format:</label>
+                        <p><span class="badge {% if exam.exam_format == 'objective' %}bg-info{% else %}bg-warning{% endif %}">{{ exam.exam_format.title() }}</span></p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="fw-bold">Submitted:</label>
+                        <p>{{ submission.submitted_at.strftime('%Y-%m-%d %H:%M') }}</p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="fw-bold">Status:</label>
+                        {% if submission.is_graded %}
+                        <p><span class="badge bg-success">Graded</span></p>
+                        {% else %}
+                        <p><span class="badge bg-warning">Pending</span></p>
+                        {% endif %}
+                    </div>
+                    {% if submission.is_graded %}
+                    <div class="mb-3">
+                        <label class="fw-bold">Score:</label>
+                        <p>
+                            {% if submission.max_score %}
+                                {{ submission.score|default(0) }}/{{ submission.max_score }} marks
+                                {% if submission.percentage is not none %}
+                                    ({{ "%.1f"|format(submission.percentage) }}%)
+                                {% elif submission.max_score > 0 %}
+                                    ({{ "%.1f"|format((submission.score / submission.max_score * 100)) }}%)
+                                {% endif %}
+                                {% if submission.score > submission.max_score %}
+                                    <br><small class="text-danger">⚠️ Score exceeds maximum possible marks - needs correction</small>
+                                {% endif %}
+                            {% else %}
+                                {{ submission.score|default(0) }} marks
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="fw-bold">Grade:</label>
+                        <p>
+                            {% if submission.percentage is not none %}
+                                {% set grade_percentage = submission.percentage %}
+                            {% elif submission.max_score and submission.max_score > 0 %}
+                                {% set grade_percentage = (submission.score / submission.max_score * 100) %}
+                            {% else %}
+                                {% set grade_percentage = 0 %}
+                            {% endif %}
+                            <span class="badge {% if grade_percentage >= 70 %}bg-success{% elif grade_percentage >= 35 %}bg-warning{% else %}bg-danger{% endif %} fs-6">
+                                {% if grade_percentage >= 70 %}
+                                    A
+                                {% elif grade_percentage >= 35 %}
+                                    B
+                                {% else %}
+                                    F
+                                {% endif %}
+                            </span>
+                            <small class="text-muted ms-2">
+                                (A ≥70%, B 35-69%, F <35%)
+                            </small>
+                        </p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="fw-bold">Result:</label>
+                        <p>
+                            {% if submission.percentage is not none %}
+                                {% set result_percentage = submission.percentage %}
+                            {% elif submission.max_score and submission.max_score > 0 %}
+                                {% set result_percentage = (submission.score / submission.max_score * 100) %}
+                            {% else %}
+                                {% set result_percentage = 0 %}
+                            {% endif %}
+                            <span class="badge {% if result_percentage >= 35 %}bg-success{% else %}bg-danger{% endif %} fs-6">
+                                {% if result_percentage >= 35 %}
+                                    <i class="fas fa-check-circle"></i> PASS
+                                {% else %}
+                                    <i class="fas fa-times-circle"></i> FAIL
+                                {% endif %}
+                            </span>
+                            <small class="text-muted ms-2">
+                                (Passing: ≥35%)
+                            </small>
+                        </p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Questions and Answers -->
+        <div class="col-md-8 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Questions and Answers</h5>
+                </div>
+                <div class="card-body">
+                    {% if processed_answers %}
+                        <!-- Display processed answers with proper question data -->
+                        {% for answer_data in processed_answers %}
+                        <div class="card mb-4 border">
+                            <div class="card-header bg-light">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h6 class="mb-0">Question {{ loop.index }}</h6>
+                                    <div class="d-flex align-items-center">
+                                        <span class="badge bg-secondary me-2">{{ answer_data.marks }} marks</span>
+                                        {% if submission.is_graded and answer_data.get('is_correct') is not none %}
+                                            {% if answer_data.get('is_correct') %}
+                                                <span class="badge bg-success me-2">{{ answer_data.get('score', 0) }}/{{ answer_data.marks }}</span>
+                                                <i class="fas fa-check-circle text-success"></i>
+                                            {% else %}
+                                                <span class="badge bg-danger me-2">{{ answer_data.get('score', 0) }}/{{ answer_data.marks }}</span>
+                                                <i class="fas fa-times-circle text-danger"></i>
+                                            {% endif %}
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <!-- Question Text -->
+                                <div class="mb-3">
+                                    <label class="fw-bold text-primary">Question:</label>
+                                    <p class="mb-0">{{ answer_data.question_text }}</p>
+                                </div>
+
+                                <!-- Student's Answer -->
+                                <div class="mb-3">
+                                    <label class="fw-bold text-secondary">Student's Answer:</label>
+                                    {% if answer_data.student_answer and answer_data.student_answer.strip() %}
+                                        <div class="answer-box p-3 bg-light border rounded">
+                                            <pre class="mb-0">{{ answer_data.student_answer }}</pre>
+                                        </div>
+                                    {% else %}
+                                        <p class="text-muted fst-italic">No answer provided</p>
+                                        <p class="small text-danger">⚠️ Student did not submit any answers for this exam</p>
+                                    {% endif %}
+                        </div>
+
+                                <!-- Model Answer (for subjective questions) -->
+                                {% if answer_data.model_answer %}
+                                <div class="mb-3">
+                                    <label class="fw-bold text-success">Model Answer:</label>
+                                    <div class="model-answer-box p-3 bg-success bg-opacity-10 border border-success rounded">
+                                        <pre class="mb-0">{{ answer_data.model_answer }}</pre>
+                        </div>
+                        </div>
+                        {% endif %}
+
+                                <!-- Points Information -->
+                                <div class="mb-0">
+                                    <small class="text-muted">
+                                        <i class="fas fa-star"></i> Worth: {{ answer_data.marks }} marks
+                                        {% if answer_data.question_type %}
+                                            | Type: {{ answer_data.question_type|title }}
+                                        {% endif %}
+                                    </small>
+                                </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                        <p class="text-muted text-center">No answers found for this submission.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Subjective Grading Modal -->
+{% if not submission.is_graded and exam.exam_format == 'subjective' %}
+<div class="modal fade" id="gradeModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Grade Subjective Exam</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ url_for('teacher.grade_submission', submission_id=submission.id) }}" method="POST" id="gradingForm">
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>Grading Instructions:</strong> Review each answer and mark as correct/incorrect. The system will automatically calculate the percentage and assign grades (A ≥70%, B 35-69%, F <35%). Passing criteria is 35%.
+                    </div>
+                    
+                    <!-- Auto-calculation summary -->
+                    <div class="card mb-4 bg-light">
+                        <div class="card-body">
+                            <div class="row text-center">
+                                <div class="col-md-3">
+                                    <h6>Total Questions</h6>
+                                    <span class="h4 text-primary" id="totalQuestions">{{ processed_answers|length if processed_answers else 0 }}</span>
+                                </div>
+                                <div class="col-md-3">
+                                    <h6>Marks Obtained</h6>
+                                    <span class="h4 text-success" id="marksObtained">0</span> / <span class="h4 text-secondary" id="totalMarks">{% if processed_answers %}{{ processed_answers|sum(attribute='marks') }}{% else %}0{% endif %}</span>
+                                </div>
+                                <div class="col-md-3">
+                                    <h6>Percentage</h6>
+                                    <span class="h4 text-info" id="percentage">0.0%</span>
+                                </div>
+                                <div class="col-md-3">
+                                    <h6>Grade</h6>
+                                    <span class="badge bg-secondary fs-5" id="grade">F</span>
+                                </div>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col-12 text-center">
+                                    <span class="badge bg-secondary fs-6" id="result">FAIL</span>
+                                    <small class="text-muted ms-2">(Passing: ≥35%)</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Question-wise grading -->
+                    {% if processed_answers %}
+                        {% for answer_data in processed_answers %}
+                        <div class="card mb-3">
+                            <div class="card-header">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h6 class="mb-0">Question {{ loop.index }}</h6>
+                                    <span class="badge bg-secondary">{{ answer_data.marks }} marks</span>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-2">
+                                    <small class="fw-bold text-primary">Question:</small>
+                                    <p class="small mb-2">{{ answer_data.question_text }}</p>
+                                </div>
+                                <div class="mb-3">
+                                    <small class="fw-bold text-secondary">Student's Answer:</small>
+                                    <div class="answer-preview p-2 bg-light border rounded">
+                                        <small><pre>{{ answer_data.student_answer if answer_data.student_answer else 'No answer provided' }}</pre></small>
+                                    </div>
+                                </div>
+                                {% if answer_data.model_answer %}
+                    <div class="mb-3">
+                                    <small class="fw-bold text-success">Model Answer:</small>
+                                    <div class="model-answer-preview p-2 bg-success bg-opacity-10 border border-success rounded">
+                                        <small><pre>{{ answer_data.model_answer }}</pre></small>
+                                    </div>
+                                </div>
+                                {% endif %}
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold">Assessment:</label>
+                                        <div class="btn-group w-100" role="group">
+                                            <input type="radio" class="btn-check assessment-radio" name="question_{{ loop.index0 }}_status" id="correct_{{ loop.index0 }}" value="correct" data-marks="{{ answer_data.marks }}" data-question="{{ loop.index0 }}">
+                                            <label class="btn btn-outline-success" for="correct_{{ loop.index0 }}">
+                                                <i class="fas fa-check"></i> Correct ({{ answer_data.marks }} marks)
+                                            </label>
+                                            
+                                            <input type="radio" class="btn-check assessment-radio" name="question_{{ loop.index0 }}_status" id="incorrect_{{ loop.index0 }}" value="incorrect" data-marks="0" data-question="{{ loop.index0 }}" checked>
+                                            <label class="btn btn-outline-danger" for="incorrect_{{ loop.index0 }}">
+                                                <i class="fas fa-times"></i> Incorrect (0 marks)
+                                            </label>
+                                        </div>
+                                        <input type="hidden" name="question_{{ loop.index0 }}_score" id="score_{{ loop.index0 }}" value="0">
+                                        <input type="hidden" name="question_{{ loop.index0 }}_max_marks" value="{{ answer_data.marks }}">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold">Marks Awarded:</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text" id="awarded_{{ loop.index0 }}">0</span>
+                                            <span class="input-group-text">/</span>
+                                            <span class="input-group-text">{{ answer_data.marks }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% endif %}
+                    
+                    <!-- Overall Assessment Display (Auto-calculated) -->
+                    <div class="card mb-3 border-primary">
+                        <div class="card-header bg-primary text-white">
+                            <h6 class="mb-0"><i class="fas fa-calculator"></i> Overall Assessment (Auto-calculated)</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">Total Score:</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-info text-white fw-bold">
+                                            <span id="displayPercentage">0.0%</span>
+                                        </span>
+                                        <span class="input-group-text">
+                                            Grade: <span class="badge ms-1" id="displayGrade">F</span>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">Pass/Fail Status:</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text w-100 justify-content-center">
+                                            <span class="badge fs-6" id="displayResult">FAIL</span>
+                                            <small class="text-muted ms-2">(Passing: ≥30%)</small>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col-12">
+                                    <div class="alert alert-light mb-0">
+                                        <small class="text-muted">
+                                            <i class="fas fa-info-circle"></i>
+                                            <strong>Marks:</strong> <span id="displayMarks">0/0</span> | 
+                                            <strong>Questions:</strong> <span id="displayQuestions">0</span> | 
+                                            <strong>Auto-calculated based on your assessments above</strong>
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Hidden fields for final calculation -->
+                    <input type="hidden" name="score" id="finalScore" value="0">
+                    <input type="hidden" name="pass_fail" id="finalResult" value="fail">
+                    
+                    <!-- Optional feedback -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="mb-0">Additional Feedback (Optional)</h6>
+                        </div>
+                        <div class="card-body">
+                            <textarea class="form-control" name="feedback" rows="3" placeholder="Provide additional feedback to the student..."></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Save Grade
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const assessmentRadios = document.querySelectorAll('.assessment-radio');
+    const totalMarksElement = document.getElementById('totalMarks');
+    const totalMarks = parseInt(totalMarksElement.textContent) || 0;
+    
+    function updateCalculations() {
+        let marksObtained = 0;
+        
+        // Calculate total marks obtained
+        assessmentRadios.forEach(radio => {
+            if (radio.checked) {
+                const marks = parseInt(radio.dataset.marks) || 0;
+                const questionIndex = radio.dataset.question;
+                
+                marksObtained += marks;
+                
+                // Update individual question score
+                document.getElementById(`score_${questionIndex}`).value = marks;
+                document.getElementById(`awarded_${questionIndex}`).textContent = marks;
+            }
+        });
+        
+        // Calculate percentage
+        const percentage = totalMarks > 0 ? (marksObtained / totalMarks * 100) : 0;
+        
+        // Determine grade
+        let grade, gradeClass, result, resultClass;
+        if (percentage >= 70) {
+            grade = 'A';
+            gradeClass = 'bg-success';
+            } else if (percentage >= 35) {
+            grade = 'B';
+            gradeClass = 'bg-warning';
+        } else {
+            grade = 'F';
+            gradeClass = 'bg-danger';
+        }
+        
+        // Determine pass/fail
+        if (percentage >= 30) {
+            result = 'PASS';
+            resultClass = 'bg-success';
+        } else {
+            result = 'FAIL';
+            resultClass = 'bg-danger';
+        }
+        
+        // Update main summary display
+        document.getElementById('marksObtained').textContent = marksObtained;
+        document.getElementById('percentage').textContent = percentage.toFixed(1) + '%';
+        
+        const gradeElement = document.getElementById('grade');
+        gradeElement.textContent = grade;
+        gradeElement.className = `badge fs-5 ${gradeClass}`;
+        
+        const resultElement = document.getElementById('result');
+        resultElement.textContent = result;
+        resultElement.className = `badge fs-6 ${resultClass}`;
+        
+        // Update overall assessment display section
+        const displayPercentage = document.getElementById('displayPercentage');
+        const displayGrade = document.getElementById('displayGrade');
+        const displayResult = document.getElementById('displayResult');
+        const displayMarks = document.getElementById('displayMarks');
+        const displayQuestions = document.getElementById('displayQuestions');
+        
+        if (displayPercentage) displayPercentage.textContent = percentage.toFixed(1) + '%';
+        if (displayGrade) {
+            displayGrade.textContent = grade;
+            displayGrade.className = `badge ms-1 ${gradeClass}`;
+        }
+        if (displayResult) {
+            displayResult.textContent = result;
+            displayResult.className = `badge fs-6 ${resultClass}`;
+        }
+        if (displayMarks) displayMarks.textContent = `${marksObtained}/${totalMarks}`;
+        if (displayQuestions) displayQuestions.textContent = document.getElementById('totalQuestions').textContent;
+        
+        // Update hidden fields
+        document.getElementById('finalScore').value = percentage.toFixed(1);
+        document.getElementById('finalResult').value = result.toLowerCase();
+    }
+    
+    // Add event listeners to all assessment radios
+    assessmentRadios.forEach(radio => {
+        radio.addEventListener('change', updateCalculations);
+    });
+    
+    // Initial calculation
+    updateCalculations();
+});
+</script>
+{% endif %}
+
+{% endblock %} 

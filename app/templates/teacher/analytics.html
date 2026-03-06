@@ -1,0 +1,127 @@
+{% extends "teacher/base.html" %}
+
+{% block title %}Analytics - EduQuest{% endblock %}
+
+{% block head %}
+{{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="h3">Analytics Dashboard</h1>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Total Exams</h5>
+                    <h2 class="mb-0">{{ total_exams }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Total Students</h5>
+                    <h2 class="mb-0">{{ total_students }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Total Submissions</h5>
+                    <h2 class="mb-0">{{ total_submissions }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Average Score</h5>
+                    <h2 class="mb-0">{{ "%.1f"|format(avg_score) }}%</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Exam Performance</h5>
+                    <canvas id="examPerformanceChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Submission Trends</h5>
+                    <canvas id="submissionTrendsChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block scripts %}
+<script>
+    // Exam Performance Chart
+    const examPerformanceCtx = document.getElementById('examPerformanceChart').getContext('2d');
+    new Chart(examPerformanceCtx, {
+        type: 'bar',
+        data: {
+            labels: ['Exam 1', 'Exam 2', 'Exam 3', 'Exam 4', 'Exam 5'],
+            datasets: [{
+                label: 'Average Score',
+                data: [75, 82, 68, 90, 85],
+                backgroundColor: 'rgba(0, 13, 255, 0.5)',
+                borderColor: 'rgba(0, 13, 255, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100
+                }
+            }
+        }
+    });
+
+    // Submission Trends Chart
+    const submissionTrendsCtx = document.getElementById('submissionTrendsChart').getContext('2d');
+    new Chart(submissionTrendsCtx, {
+        type: 'line',
+        data: {
+            labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+            datasets: [{
+                label: 'Submissions',
+                data: [30, 45, 60, 75],
+                fill: false,
+                borderColor: 'rgba(107, 115, 255, 1)',
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}
+{% endblock %} 

@@ -1,0 +1,282 @@
+{% extends "auth/base.html" %}
+
+{% block title %}Teacher Registration - EduQuest{% endblock %}
+
+{% block info_subtitle %}Join EduQuest as an Educator{% endblock %}
+
+{% block info_features %}
+<li><i class="fas fa-chalkboard-teacher"></i> Create & Manage Exams</li>
+<li><i class="fas fa-users"></i> Student Management</li>
+<li><i class="fas fa-chart-line"></i> Performance Analytics</li>
+<li><i class="fas fa-shield-alt"></i> Secure Proctoring</li>
+{% endblock %}
+
+{% block content %}
+<div class="auth-form-header">
+    <h2 class="auth-form-title">Teacher Registration</h2>
+    <p class="auth-form-subtitle">Create your educator account</p>
+                </div>
+
+<form method="POST" action="{{ url_for('auth.register') }}" id="registerForm">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="role" value="teacher">
+        
+    <div class="form-group">
+        <label for="username" class="form-label">Full Name</label>
+        <input type="text" class="form-control" id="username" name="username" 
+               placeholder="Enter your full name" required minlength="2" maxlength="50"
+               pattern="[A-Za-z\s]+" title="Please enter a valid name (letters and spaces only)">
+        </div>
+
+    <div class="form-group">
+            <label for="email" class="form-label">Email Address</label>
+            <input type="email" class="form-control" id="email" name="email" 
+               placeholder="Enter your email address" required 
+               pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$"
+               title="Please enter a valid email address">
+        </div>
+
+    <div class="form-group">
+            <label for="password" class="form-label">Password</label>
+            <div class="input-group">
+                <input type="password" class="form-control" id="password" name="password" 
+                   placeholder="Create a strong password" required minlength="8"
+                       pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}"
+                   title="Must contain at least one number and one uppercase and lowercase letter, and at least 8 or more characters">
+            <button class="btn" type="button" id="togglePassword">
+                    <i class="fas fa-eye"></i>
+                </button>
+            </div>
+        <div class="password-requirements mt-2">
+            <small class="text-muted">
+                Password must contain:
+                <ul class="mb-0 mt-1">
+                    <li id="length" class="requirement">At least 8 characters</li>
+                    <li id="uppercase" class="requirement">One uppercase letter</li>
+                    <li id="lowercase" class="requirement">One lowercase letter</li>
+                    <li id="number" class="requirement">One number</li>
+                </ul>
+            </small>
+            </div>
+        </div>
+
+    <div class="form-group">
+            <label for="confirm_password" class="form-label">Confirm Password</label>
+            <div class="input-group">
+                <input type="password" class="form-control" id="confirm_password" name="confirm_password" 
+                   placeholder="Confirm your password" required minlength="8">
+            <button class="btn" type="button" id="toggleConfirmPassword">
+                    <i class="fas fa-eye"></i>
+                </button>
+        </div>
+        <div id="passwordMatch" class="mt-1"></div>
+    </div>
+
+    <div class="teacher-info-card mb-4">
+        <div class="d-flex align-items-center">
+            <div class="teacher-icon me-3">
+                <i class="fas fa-chalkboard-teacher"></i>
+            </div>
+            <div>
+                <h6 class="mb-1">Teacher Account</h6>
+                <small class="text-muted">You'll be able to create exams, manage students, and view analytics</small>
+            </div>
+        </div>
+        </div>
+
+    <button type="submit" class="btn btn-primary" id="submitBtn">
+        <i class="fas fa-user-plus me-2"></i>Create Teacher Account
+    </button>
+    </form>
+
+    <div class="auth-footer">
+    <p>Already have an account? <a href="{{ url_for('auth.login') }}">Sign In</a></p>
+    <p class="mt-2"><small class="text-muted">Students are added by teachers through the dashboard</small></p>
+</div>
+{% endblock %}
+
+{% block head %}
+<style>
+    .password-requirements {
+        font-size: 0.875rem;
+    }
+    
+    .requirement {
+        color: #dc2626;
+        transition: color 0.3s ease;
+    }
+    
+    .requirement.valid {
+        color: #16a34a;
+    }
+    
+    .requirement.valid::before {
+        content: '✓ ';
+        font-weight: bold;
+    }
+    
+    .requirement:not(.valid)::before {
+        content: '✗ ';
+        font-weight: bold;
+    }
+    
+    #passwordMatch {
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+    
+    .match-success {
+        color: #16a34a;
+    }
+    
+    .match-error {
+        color: #dc2626;
+    }
+    
+    .teacher-info-card {
+        background: var(--light-blue);
+        border: 2px solid var(--secondary-blue);
+        border-radius: 8px;
+        padding: 1rem;
+    }
+    
+    .teacher-icon {
+        width: 50px;
+        height: 50px;
+        background: var(--secondary-blue);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.5rem;
+    }
+    
+    .teacher-info-card h6 {
+        color: var(--dark-blue);
+        font-weight: 600;
+    }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Toggle password visibility
+    function togglePasswordVisibility(inputId, buttonId) {
+        const input = document.getElementById(inputId);
+        const button = document.getElementById(buttonId);
+        
+        button.addEventListener('click', function() {
+            const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
+            input.setAttribute('type', type);
+            
+            const icon = button.querySelector('i');
+            icon.classList.toggle('fa-eye');
+            icon.classList.toggle('fa-eye-slash');
+        });
+    }
+
+    togglePasswordVisibility('password', 'togglePassword');
+    togglePasswordVisibility('confirm_password', 'toggleConfirmPassword');
+    
+    // Password validation
+    const password = document.getElementById('password');
+    const confirmPassword = document.getElementById('confirm_password');
+    const form = document.getElementById('registerForm');
+    const submitBtn = document.getElementById('submitBtn');
+    
+    // Password requirements validation
+    password.addEventListener('input', function() {
+        const value = this.value;
+        
+        // Length check
+        const lengthReq = document.getElementById('length');
+        if (value.length >= 8) {
+            lengthReq.classList.add('valid');
+        } else {
+            lengthReq.classList.remove('valid');
+        }
+        
+        // Uppercase check
+        const uppercaseReq = document.getElementById('uppercase');
+        if (/[A-Z]/.test(value)) {
+            uppercaseReq.classList.add('valid');
+        } else {
+            uppercaseReq.classList.remove('valid');
+        }
+        
+        // Lowercase check
+        const lowercaseReq = document.getElementById('lowercase');
+        if (/[a-z]/.test(value)) {
+            lowercaseReq.classList.add('valid');
+        } else {
+            lowercaseReq.classList.remove('valid');
+        }
+        
+        // Number check
+        const numberReq = document.getElementById('number');
+        if (/\d/.test(value)) {
+            numberReq.classList.add('valid');
+        } else {
+            numberReq.classList.remove('valid');
+        }
+        
+        checkPasswordMatch();
+    });
+    
+    // Password match validation
+    function checkPasswordMatch() {
+        const matchDiv = document.getElementById('passwordMatch');
+        
+        if (confirmPassword.value === '') {
+            matchDiv.innerHTML = '';
+            return;
+        }
+        
+        if (password.value === confirmPassword.value) {
+            matchDiv.innerHTML = '<span class="match-success">✓ Passwords match</span>';
+        } else {
+            matchDiv.innerHTML = '<span class="match-error">✗ Passwords do not match</span>';
+        }
+    }
+    
+    confirmPassword.addEventListener('input', checkPasswordMatch);
+    
+    // Form submission validation
+    form.addEventListener('submit', function(e) {
+        if (password.value !== confirmPassword.value) {
+            e.preventDefault();
+            alert('Passwords do not match!');
+            return false;
+        }
+        
+        // Check if all password requirements are met
+        const requirements = document.querySelectorAll('.requirement');
+        const allValid = Array.from(requirements).every(req => req.classList.contains('valid'));
+        
+        if (!allValid) {
+            e.preventDefault();
+            alert('Please ensure your password meets all requirements!');
+            return false;
+        }
+        
+        // Show loading state
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Creating Account...';
+        submitBtn.disabled = true;
+    });
+    
+    // Add smooth animations
+    document.addEventListener('DOMContentLoaded', function() {
+        const formElements = document.querySelectorAll('.form-group, .teacher-info-card');
+        formElements.forEach((element, index) => {
+            element.style.opacity = '0';
+            element.style.transform = 'translateY(20px)';
+            setTimeout(() => {
+                element.style.transition = 'all 0.5s ease';
+                element.style.opacity = '1';
+                element.style.transform = 'translateY(0)';
+            }, index * 100);
+        });
+    });
+</script>
+{% endblock %} 

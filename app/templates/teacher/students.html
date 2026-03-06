@@ -1,0 +1,463 @@
+{% extends "teacher/base.html" %}
+
+{% block title %}Students - EduQuest{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3">Students</h1>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('teacher.export_students_excel') }}" class="btn btn-outline-success">
+                <i class="fas fa-file-excel"></i> Export Student Records
+            </a>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createClassModal">
+                <i class="fas fa-plus"></i> Create Class
+            </button>
+            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addStudentModal">
+                <i class="fas fa-user-plus"></i> Add Student
+            </button>
+            <div class="input-group" style="max-width: 300px;">
+                <input type="text" class="form-control" placeholder="Search students..." id="searchInput">
+                <button class="btn btn-outline-secondary" type="button">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Classes Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">Classes</h5>
+                    {% if classes %}
+                    <div class="row">
+                        {% for class in classes %}
+                        <div class="col-md-4 mb-3">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h6 class="card-title">{{ class.name }}</h6>
+                                    <p class="card-text text-muted small">{{ class.description }}</p>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <small class="text-muted">
+                                            <i class="fas fa-users"></i> {{ class.students|length }} students
+                                        </small>
+                                        <div class="btn-group">
+                                            <button type="button" class="btn btn-sm btn-outline-primary" 
+                                                    onclick="viewClass('{{ class.id }}')">
+                                                <i class="fas fa-eye"></i> View
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-danger" 
+                                                    onclick="deleteClass('{{ class.id }}')">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                        <h5>No Classes Yet</h5>
+                        <p class="text-muted">Create your first class to start adding students.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Students Table -->
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title mb-3">My Students</h5>
+            {% if students %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Student ID</th>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Phone</th>
+                            <th>College</th>
+                            <th>Class</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for student in students %}
+                        <tr>
+                            <td>{{ student.student_id }}</td>
+                            <td>{{ student.username }}</td>
+                            <td>{{ student.email }}</td>
+                            <td>{{ student.phone_number }}</td>
+                            <td>{{ student.college_name }}</td>
+                            <td>
+                                {% if student.class_info %}
+                                    <span class="badge bg-success">{{ student.class_info.name }}</span>
+                                {% else %}
+                                    <button type="button" class="btn btn-sm btn-warning"
+                                            onclick="assignClass('{{ student.id }}')"
+                                            title="Assign to a class">
+                                        <i class="fas fa-user-plus me-1"></i>Assign Class
+                                    </button>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group">
+                                    <button type="button" class="btn btn-sm btn-outline-primary" 
+                                            onclick="viewStudent('{{ student.id }}')">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" 
+                                            onclick="editStudent('{{ student.id }}')">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-danger" 
+                                            onclick="deleteStudent('{{ student.id }}')">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-4">
+                <i class="fas fa-user-graduate fa-3x text-muted mb-3"></i>
+                <h5>No Students Yet</h5>
+                <p class="text-muted">Add students to get started.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Export Information Section -->
+    <div class="card mt-4">
+        <div class="card-body bg-light">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h6 class="mb-2">
+                        <i class="fas fa-file-excel text-success me-2"></i>
+                        Export Student Records
+                    </h6>
+                    <p class="mb-0 text-muted small">
+                        Generate comprehensive Excel report including student overview, detailed performance, and class statistics
+                    </p>
+                    <ul class="list-unstyled mt-2 mb-0 small text-muted">
+                        <li><i class="fas fa-check text-success me-2"></i>Student information and contact details</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Performance statistics and exam scores</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Class-wise analysis and comparisons</li>
+                    </ul>
+                </div>
+                <div class="col-md-4 text-end">
+                    <a href="{{ url_for('teacher.export_students_excel') }}" class="btn btn-success">
+                        <i class="fas fa-download me-2"></i>Download Excel Report
+                    </a>
+                    <div class="mt-2">
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle me-1"></i>Multi-sheet Excel file
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create Class Modal -->
+<div class="modal fade" id="createClassModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Create New Class</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ url_for('teacher.create_class') }}" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="className" class="form-label">Class Name</label>
+                        <input type="text" class="form-control" id="className" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="classDescription" class="form-label">Description</label>
+                        <textarea class="form-control" id="classDescription" name="description" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Class</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Add Student Modal -->
+<div class="modal fade" id="addStudentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New Student</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ url_for('teacher.add_student') }}" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="studentName" class="form-label">Full Name</label>
+                        <input type="text" class="form-control" id="studentName" name="username" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="studentId" class="form-label">Student ID</label>
+                        <input type="text" class="form-control" id="studentId" name="student_id" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="studentEmail" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="studentEmail" name="email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="studentPhone" class="form-label">Phone Number</label>
+                        <input type="tel" class="form-control" id="studentPhone" name="phone_number" 
+                               pattern="[0-9]{10}" title="Please enter a valid 10-digit phone number">
+                    </div>
+                    <div class="mb-3">
+                        <label for="studentCollege" class="form-label">College Name</label>
+                        <input type="text" class="form-control" id="studentCollege" name="college_name">
+                    </div>
+                    <div class="mb-3">
+                        <label for="studentClass" class="form-label">Assign to Class</label>
+                        <select class="form-select" id="studentClass" name="class_id">
+                            <option value="">Select Class</option>
+                            {% for class in classes %}
+                            <option value="{{ class.id }}">{{ class.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="studentPassword" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="studentPassword" name="password" 
+                               required minlength="6" 
+                               title="Password must be at least 6 characters long"
+                               autocomplete="new-password">
+                        <small class="form-text text-muted">
+                            Password must be at least 6 characters long
+                        </small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">Add Student</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Student Modal -->
+<div class="modal fade" id="editStudentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Student</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ url_for('teacher.update_student') }}" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-body">
+                    <input type="hidden" id="editStudentMongoId" name="_id">
+                    <div class="mb-3">
+                        <label for="editUsername" class="form-label">Username</label>
+                        <input type="text" class="form-control" id="editUsername" name="username" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editEmail" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="editEmail" name="email" 
+                               required pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$"
+                               title="Please enter a valid email address">
+                    </div>
+                    <div class="mb-3">
+                        <label for="editStudentNumber" class="form-label">Student ID</label>
+                        <input type="text" class="form-control" id="editStudentNumber" name="student_id" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editPhone" class="form-label">Phone Number</label>
+                        <input type="tel" class="form-control" id="editPhone" name="phone_number"
+                               pattern="[0-9]{10}" title="Please enter a valid 10-digit phone number">
+                    </div>
+                    <div class="mb-3">
+                        <label for="editCollege" class="form-label">College Name</label>
+                        <input type="text" class="form-control" id="editCollege" name="college_name">
+                    </div>
+                    <div class="mb-3">
+                        <label for="editClass" class="form-label">Class</label>
+                        <select class="form-select" id="editClass" name="class_id">
+                            <option value="">Select Class</option>
+                            {% for class in classes %}
+                            <option value="{{ class.id }}">{{ class.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editPassword" class="form-label">New Password (leave blank to keep current)</label>
+                        <input type="password" class="form-control" id="editPassword" name="password"
+                               minlength="6" 
+                               title="Password must be at least 6 characters long"
+                               autocomplete="new-password">
+                        <small class="form-text text-muted">
+                            Password must be at least 6 characters long
+                        </small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% block scripts %}
+<script>
+    // Search functionality
+    document.getElementById('searchInput').addEventListener('input', searchStudents);
+
+    function searchStudents() {
+        const searchInput = document.getElementById('searchInput');
+        const searchTerm = searchInput.value.toLowerCase();
+        const tableRows = document.querySelectorAll('tbody tr');
+        
+        tableRows.forEach(row => {
+            const studentName = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+            const studentId = row.querySelector('td:nth-child(1)').textContent.toLowerCase();
+            const studentEmail = row.querySelector('td:nth-child(3)').textContent.toLowerCase();
+            
+            if (studentName.includes(searchTerm) || 
+                studentId.includes(searchTerm) || 
+                studentEmail.includes(searchTerm)) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    }
+
+    // Student actions
+    function viewStudent(studentId) {
+        window.location.href = `/teacher/students/${studentId}`;
+    }
+
+    function editStudent(studentId, focusClass = false) {
+        fetch(`/teacher/student/${studentId}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Populate the edit modal with student data
+                document.getElementById('editStudentMongoId').value = data.id;
+                document.getElementById('editUsername').value = data.username;
+                document.getElementById('editEmail').value = data.email;
+                document.getElementById('editStudentNumber').value = data.student_id;
+                document.getElementById('editPhone').value = data.phone_number || '';
+                document.getElementById('editCollege').value = data.college_name || '';
+                
+                // Set the class if it exists
+                const classSelect = document.getElementById('editClass');
+                if (data.class_info) {
+                    classSelect.value = data.class_info.id;
+                } else {
+                    classSelect.value = '';
+                }
+                
+                // Show the modal
+                const modal = new bootstrap.Modal(document.getElementById('editStudentModal'));
+                modal.show();
+
+                // If opened from "Assign Class" button, focus & highlight the class dropdown
+                if (focusClass) {
+                    document.getElementById('editStudentModal').addEventListener('shown.bs.modal', function () {
+                        classSelect.focus();
+                        classSelect.style.border = '2px solid #f59e0b';
+                        classSelect.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }, { once: true });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Failed to load student data');
+            });
+    }
+
+    function deleteStudent(studentId) {
+        if (confirm('Are you sure you want to delete this student? This action cannot be undone.')) {
+            fetch(`/teacher/students/${studentId}/delete`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('input[name=csrf_token]').value
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to delete student');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.message) {
+                    alert('Student deleted successfully');
+                    window.location.reload();
+                } else {
+                    throw new Error(data.error || 'Failed to delete student');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Failed to delete student: ' + error.message);
+            });
+        }
+    }
+
+    // Assign class shortcut: open edit modal focused on class dropdown
+    function assignClass(studentId) {
+        editStudent(studentId, true);
+    }
+
+    // Class actions
+    function viewClass(classId) {
+        window.location.href = `/teacher/class/${classId}`;
+    }
+
+    function deleteClass(classId) {
+        if (confirm('Are you sure you want to delete this class? This action cannot be undone.')) {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = `/teacher/class/${classId}/delete`;
+            
+            // Add CSRF token
+            const csrfToken = document.querySelector('input[name=csrf_token]').value;
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = 'csrf_token';
+            csrfInput.value = csrfToken;
+            form.appendChild(csrfInput);
+            
+            document.body.appendChild(form);
+            form.submit();
+        }
+    }
+</script>
+{% endblock %}
+{% endblock %} 

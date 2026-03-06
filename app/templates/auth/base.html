@@ -1,0 +1,399 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% block title %}EduQuest{% endblock %}</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+    <style>
+      :root {
+        --primary-blue: #1e40af;
+        --secondary-blue: #3b82f6;
+        --light-blue: #dbeafe;
+        --dark-blue: #1e3a8a;
+        --accent-blue: #60a5fa;
+        --gradient-blue: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+        --gradient-light: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Inter", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        height: 100vh;
+        overflow-x: hidden;
+      }
+
+      .auth-container {
+        display: flex;
+        height: 100vh;
+        width: 100%;
+      }
+
+      /* Left Side - Information Panel */
+      .auth-info-panel {
+        flex: 1;
+        background: var(--gradient-blue);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 3rem;
+        color: white;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .auth-info-panel::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
+        opacity: 0.3;
+      }
+
+      .auth-info-content {
+        position: relative;
+        z-index: 2;
+        text-align: center;
+        max-width: 400px;
+      }
+
+      .auth-logo {
+        font-size: 4rem;
+        margin-bottom: 2rem;
+        color: white;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+      }
+
+      .auth-brand-title {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+      }
+
+      .auth-brand-subtitle {
+        font-size: 1.2rem;
+        opacity: 0.9;
+        margin-bottom: 2rem;
+        line-height: 1.6;
+      }
+
+      .auth-features {
+        list-style: none;
+        text-align: left;
+      }
+
+      .auth-features li {
+        display: flex;
+        align-items: center;
+        margin-bottom: 1rem;
+        font-size: 1.1rem;
+      }
+
+      .auth-features li i {
+        margin-right: 1rem;
+        color: var(--accent-blue);
+        font-size: 1.2rem;
+      }
+
+      /* Right Side - Form Panel */
+      .auth-form-panel {
+        flex: 1;
+        background: white;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start; /* Changed from center to accommodate scrolling */
+        align-items: center;
+        padding: 3rem 1.5rem;
+        position: relative;
+        overflow-y: auto;
+      }
+
+      .auth-form-container {
+        width: 100%;
+        max-width: 400px;
+        margin-top: auto;
+        margin-bottom: auto;
+      }
+
+      .auth-form-header {
+        text-align: center;
+        margin-bottom: 2rem;
+      }
+
+      .auth-form-title {
+        font-size: 2rem;
+        font-weight: 600;
+        color: var(--dark-blue);
+        margin-bottom: 0.5rem;
+      }
+
+      .auth-form-subtitle {
+        color: #6b7280;
+        font-size: 1rem;
+      }
+
+      .form-group {
+        margin-bottom: 1.5rem;
+      }
+
+      .form-label {
+        font-weight: 500;
+        color: var(--dark-blue);
+        margin-bottom: 0.5rem;
+        display: block;
+      }
+
+      .form-control {
+        border: 2px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        width: 100%;
+      }
+
+      .form-control:focus {
+        border-color: var(--secondary-blue);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        outline: none;
+      }
+
+      .input-group {
+        position: relative;
+      }
+
+      .input-group .btn {
+        position: absolute;
+        right: 8px;
+        top: 50%;
+        transform: translateY(-50%);
+        border: none;
+        background: none;
+        color: #6b7280;
+        padding: 0.5rem;
+      }
+
+      .input-group .btn:hover {
+        color: var(--secondary-blue);
+      }
+
+      .form-check {
+        margin-bottom: 1rem;
+      }
+
+      .form-check-input:checked {
+        background-color: var(--secondary-blue);
+        border-color: var(--secondary-blue);
+      }
+
+      .form-check-label {
+        color: var(--dark-blue);
+        font-weight: 500;
+      }
+
+      .btn-primary {
+        background: var(--gradient-blue);
+        border: none;
+        border-radius: 8px;
+        padding: 0.875rem 2rem;
+        font-size: 1rem;
+        font-weight: 600;
+        width: 100%;
+        transition: all 0.3s ease;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
+      }
+
+      .auth-footer {
+        text-align: center;
+        margin-top: 2rem;
+        color: #6b7280;
+      }
+
+      .auth-footer a {
+        color: var(--secondary-blue);
+        text-decoration: none;
+        font-weight: 600;
+      }
+
+      .auth-footer a:hover {
+        text-decoration: underline;
+      }
+
+      .alert {
+        border-radius: 8px;
+        margin-bottom: 1.5rem;
+      }
+
+      .alert-error {
+        background-color: #fef2f2;
+        border-color: #fecaca;
+        color: #dc2626;
+      }
+
+      .alert-success {
+        background-color: #f0fdf4;
+        border-color: #bbf7d0;
+        color: #16a34a;
+      }
+
+      /* Role Selection Styling */
+      .role-selection {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+      }
+
+      .role-option {
+        flex: 1;
+        position: relative;
+      }
+
+      .role-option input[type="radio"] {
+        position: absolute;
+        opacity: 0;
+      }
+
+      .role-option label {
+        display: block;
+        padding: 1rem;
+        border: 2px solid #e5e7eb;
+        border-radius: 8px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-weight: 500;
+        color: var(--dark-blue);
+      }
+
+      .role-option input[type="radio"]:checked + label {
+        border-color: var(--secondary-blue);
+        background-color: var(--light-blue);
+        color: var(--dark-blue);
+      }
+
+      .role-option label:hover {
+        border-color: var(--secondary-blue);
+      }
+
+      .role-option i {
+        display: block;
+        font-size: 1.5rem;
+        margin-bottom: 0.5rem;
+        color: var(--secondary-blue);
+      }
+
+      /* Responsive Design */
+      @media (max-width: 768px) {
+        .auth-container {
+          flex-direction: column;
+        }
+
+        .auth-info-panel {
+          flex: none;
+          height: 40vh;
+          padding: 2rem;
+        }
+
+        .auth-form-panel {
+          flex: none;
+          height: 60vh;
+          padding: 2rem;
+          overflow-y: auto;
+        }
+
+        .auth-brand-title {
+          font-size: 2rem;
+        }
+
+        .auth-form-title {
+          font-size: 1.5rem;
+        }
+
+        .role-selection {
+          flex-direction: column;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .auth-info-panel,
+        .auth-form-panel {
+          padding: 1.5rem;
+        }
+      }
+    </style>
+    {% block head %}{% endblock %}
+  </head>
+  <body>
+    <div class="auth-container">
+      <!-- Left Side - Information Panel -->
+      <div class="auth-info-panel">
+        <div class="auth-info-content">
+          <div class="auth-logo">
+            <i class="fas fa-graduation-cap"></i>
+          </div>
+          <h1 class="auth-brand-title">EduQuest</h1>
+          <p class="auth-brand-subtitle">
+            {% block info_subtitle %}Advanced Online Examination Platform{%
+            endblock %}
+          </p>
+          <ul class="auth-features">
+            {% block info_features %}
+            <li><i class="fas fa-shield-alt"></i> Secure Proctoring System</li>
+            <li><i class="fas fa-chart-line"></i> Real-time Analytics</li>
+            <li><i class="fas fa-users"></i> Multi-user Management</li>
+            <li><i class="fas fa-mobile-alt"></i> Mobile Responsive</li>
+            {% endblock %}
+          </ul>
+        </div>
+      </div>
+
+      <!-- Right Side - Form Panel -->
+      <div class="auth-form-panel">
+        <div class="auth-form-container">
+          {% with messages = get_flashed_messages(with_categories=true) %} {% if
+          messages %} {% for category, message in messages %}
+          <div
+            class="alert alert-{{ category }} alert-dismissible fade show"
+            role="alert"
+          >
+            {{ message }}
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="alert"
+              aria-label="Close"
+            ></button>
+          </div>
+          {% endfor %} {% endif %} {% endwith %} {% block content %}{% endblock
+          %}
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    {% block scripts %}{% endblock %}
+  </body>
+</html>

@@ -1,0 +1,235 @@
+{% extends "student/base.html" %}
+
+{% block title %}Student Dashboard - EduQuest{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Error Alert -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4">Welcome, {{ current_user.username }}!</h1>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Available Exams -->
+        <div class="col-md-8 mb-4">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Available Exams</h5>
+                    <a href="{{ url_for('student.exams') }}" class="btn btn-sm btn-outline-primary">View All</a>
+                </div>
+                <div class="card-body">
+                    {% if available_exams %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Title</th>
+                                        <th>Duration</th>
+                                        <th>Due Date</th>
+                                        <th>Total Marks</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for exam in available_exams %}
+                                    <tr>
+                                        <td>{{ exam.title }}</td>
+                                        <td>{{ exam.duration }} minutes</td>
+                                        <td>{{ exam.end_time.strftime('%Y-%m-%d %H:%M') }}</td>
+                                        <td>{{ exam.total_marks }}</td>
+                                        <td>
+                                            {% if exam.is_active_for_student() %}
+                                                <span class="badge bg-success">Available</span>
+                                            {% else %}
+                                                <span class="badge bg-danger">Expired</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if exam.is_active_for_student() %}
+                                                <a href="{{ url_for('student.take_exam', exam_id=exam.id) }}" class="btn btn-sm btn-primary">Take Exam</a>
+                                            {% else %}
+                                                <a href="{{ url_for('student.exam_details', exam_id=exam.id) }}" class="btn btn-sm btn-outline-secondary">View Details</a>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-book-open fa-3x text-muted mb-3"></i>
+                            <h6 class="text-muted">No exams available</h6>
+                            <p class="text-muted small">Check back later for new exams from your teachers.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Quick Stats</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-12 mb-3">
+                            <div class="border-bottom pb-2 mb-2">
+                                <h4 class="text-primary mb-0" id="total-exams">{{ stats.total_exams_taken or 0 }}</h4>
+                                <small class="text-muted">Exams Taken</small>
+                            </div>
+                        </div>
+                        <div class="col-12 mb-3">
+                            <div class="border-bottom pb-2 mb-2">
+                                <h4 class="text-success mb-0" id="average-score">{{ "%.1f"|format(stats.average_score or 0) }}%</h4>
+                                <small class="text-muted">Average Score</small>
+                            </div>
+                        </div>
+                        <div class="col-12 mb-3">
+                            <div class="border-bottom pb-2 mb-2">
+                                <h4 class="text-warning mb-0" id="pending-reviews">{{ stats.pending_reviews or 0 }}</h4>
+                                <small class="text-muted">Pending Reviews</small>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <h4 class="text-info mb-0" id="available-exams">{{ available_exams|length or 0 }}</h4>
+                            <small class="text-muted">Available Exams</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Submissions -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Recent Submissions</h5>
+                    <a href="{{ url_for('student.submissions') }}" class="btn btn-sm btn-outline-primary">View All</a>
+                </div>
+                <div class="card-body">
+                    {% if recent_submissions %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Exam</th>
+                                        <th>Submitted</th>
+                                        <th>Score</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for submission in recent_submissions %}
+                                    <tr>
+                                        <td>{{ submission.exam.title }}</td>
+                                        <td>{{ submission.submitted_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                        <td>
+                                            {% if submission.is_graded and submission.score is not none %}
+                                                {% if submission.max_score is not none %}
+                                                    <!-- Use the calculated score and max_score from submission -->
+                                                    {{ submission.score }}/{{ submission.max_score }} marks
+                                                    {% if submission.percentage is not none %}
+                                                        ({{ "%.1f"|format(submission.percentage) }}%)
+                                                    {% endif %}
+                                                {% else %}
+                                                    <!-- Fallback for legacy submissions -->
+                                                    {% set calculated_marks = submission.score|default(0) %}
+                                                    {{ "%.0f"|format(calculated_marks) }}/{{ submission.exam.total_marks|default(100) }} marks
+                                                    {% if submission.percentage is not none %}
+                                                        ({{ "%.1f"|format(submission.percentage) }}%)
+                                                    {% endif %}
+                                                {% endif %}
+                                            {% else %}
+                                                <span class="text-muted">Pending Review</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if submission.is_graded %}
+                                                <span class="badge bg-success">Graded</span>
+                                            {% else %}
+                                                <span class="badge bg-warning">Pending</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <a href="{{ url_for('student.submission_result', submission_id=submission.id) }}" class="btn btn-sm btn-primary">View</a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-file-alt fa-3x text-muted mb-3"></i>
+                            <h6 class="text-muted">No submissions yet</h6>
+                            <p class="text-muted small">Start taking exams to see your submissions here.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- SweetAlert2 for notifications -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    // Stats are loaded directly from the server, no need for AJAX updates
+
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('Dashboard loaded');
+        
+        // Handle AJAX errors
+        function handleError(error) {
+            Swal.fire({
+                toast: true,
+                icon: 'error',
+                title: error,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true
+            });
+        }
+
+        // Check for error response
+        const errorMessage = '{{ error|default("") }}';
+        if (errorMessage) {
+            console.log('Showing error:', errorMessage);
+            handleError(errorMessage);
+        }
+
+        // Auto-hide alerts after 3 seconds
+        const alerts = document.querySelectorAll('.alert');
+        alerts.forEach(alert => {
+            setTimeout(() => {
+                const bsAlert = new bootstrap.Alert(alert);
+                bsAlert.close();
+            }, 3000);
+        });
+    });
+</script>
+{% endblock %}
+{% endblock %} 

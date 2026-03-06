@@ -1,0 +1,435 @@
+{% extends "student/base.html" %}
+
+{% block title %}Submission Result - EduQuest{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- DEBUG SECTION - Remove in production -->
+    <div class="alert alert-info" style="display: none;" id="debug-info">
+        <h6>Debug Information:</h6>
+        <p><strong>Detailed Results:</strong> {{ submission.detailed_results|length if submission.detailed_results else 'None' }} items</p>
+        <p><strong>Answers:</strong> {{ submission.answers|length if submission.answers else 'None' }} items</p>
+        <p><strong>Questions:</strong> {{ submission.questions|length if submission.questions else 'None' }} items</p>
+        <p><strong>Score:</strong> {{ submission.score }}/{{ submission.max_score }}</p>
+        <p><strong>Is Graded:</strong> {{ submission.is_graded }}</p>
+        {% if submission.detailed_results and submission.detailed_results|length > 0 %}
+        <p><strong>Sample Result:</strong> {{ submission.detailed_results[0] }}</p>
+        <p><strong>All Results:</strong></p>
+        <pre style="font-size: 12px; max-height: 200px; overflow-y: auto;">{{ submission.detailed_results|tojson(indent=2) }}</pre>
+        {% else %}
+        <p><strong>No Detailed Results Found</strong></p>
+        <p><strong>Raw Submission Data:</strong></p>
+        <pre style="font-size: 12px; max-height: 200px; overflow-y: auto;">
+Submission ID: {{ submission.id }}
+Exam ID: {{ submission.exam_id }}
+Student ID: {{ submission.student_id }}
+Score: {{ submission.score }}
+Max Score: {{ submission.max_score }}
+Is Graded: {{ submission.is_graded }}
+Auto Graded: {{ submission.auto_graded if submission.auto_graded is defined else 'Not set' }}
+Detailed Results Type: {{ submission.detailed_results.__class__.__name__ if submission.detailed_results else 'None' }}
+        </pre>
+        {% endif %}
+    </div>
+    
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-file-alt me-2"></i>{{ exam.title }} - Submission Results
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <!-- Submission Status -->
+                    <div class="alert {% if submission.is_graded %}alert-success{% else %}alert-warning{% endif %} mb-4">
+                        <div class="d-flex align-items-center">
+                            <div>
+                                <i class="fas {% if submission.is_graded %}fa-check-circle{% else %}fa-clock{% endif %} fa-2x me-3"></i>
+                            </div>
+                            <div>
+                                <h5 class="alert-heading mb-1">
+                                    {% if submission.is_graded %}
+                                        {% if exam.exam_format == 'objective' %}
+                                            Auto-Graded MCQ Results
+                                        {% else %}
+                                            Exam Graded
+                                        {% endif %}
+                                    {% else %}
+                                        Awaiting Evaluation
+                                    {% endif %}
+                                </h5>
+                                <p class="mb-0">
+                                    {% if submission.is_graded %}
+                                        {% if exam.exam_format == 'objective' %}
+                                            Your MCQ exam has been automatically graded using 3-level grading system.
+                                        {% else %}
+                                            Your exam has been graded. View your results below.
+                                        {% endif %}
+                                    {% else %}
+                                        Your answers have been submitted and are awaiting evaluation.
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Results Summary for All Exam Types -->
+                    {% if submission.is_graded %}
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h6 class="text-muted mb-2">Questions Attempted</h6>
+                                    <h3 class="mb-0">{{ submission.answers|length }}/{{ submission.questions|length }}</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h6 class="text-muted mb-2">Total Score</h6>
+                                    <h3 class="mb-0">{{ submission.score|default(0)|round(2) }}/{{ submission.max_score|default(exam.total_marks)|round(2) }}</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h6 class="text-muted mb-2">Percentage</h6>
+                                    {% set total_marks = submission.max_score|default(exam.total_marks) %}
+                                    {% set percentage = (submission.score / total_marks * 100) if submission.score and total_marks > 0 else 0 %}
+                                    <h3 class="mb-0">{{ "%.1f"|format(percentage) }}%</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            {% if percentage >= 70 %}
+                                {% set grade = 'A' %}
+                                {% set grade_bg = 'bg-success' %}
+                            {% elif percentage >= 35 %}
+                                {% set grade = 'B' %}
+                                {% set grade_bg = 'bg-warning' %}
+                            {% else %}
+                                {% set grade = 'F' %}
+                                {% set grade_bg = 'bg-danger' %}
+                            {% endif %}
+                            
+                            <div class="card {{ grade_bg }} text-white">
+                                <div class="card-body text-center">
+                                    <h6 class="mb-2">Grade</h6>
+                                    <h3 class="mb-0">{{ grade }}</h3>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 3-Level Grading Analysis (For Objective Exams) -->
+                    {% if exam.exam_format == 'objective' %}
+                    {% set correct_count = 0 %}
+                    {% set incorrect_count = 0 %}
+                    {% set unanswered_count = 0 %}
+                    
+                    <!-- Calculate grading analysis from score data -->
+                    {% set total_questions = submission.questions|length %}
+                    {% set marks_per_question = exam.get_marks_per_question() %}
+                    {% set earned_marks = submission.score or 0 %}
+                    {% set correct_count = (earned_marks / marks_per_question)|int if marks_per_question > 0 else 0 %}
+                    {% set answered_questions = submission.answers|length %}
+                    {% set incorrect_count = answered_questions - correct_count %}
+                    {% set unanswered_count = total_questions - answered_questions %}
+                            
+                    <!-- Ensure counts don't go negative -->
+                    {% if incorrect_count < 0 %}
+                        {% set incorrect_count = 0 %}
+                                {% endif %}
+                    {% if unanswered_count < 0 %}
+                        {% set unanswered_count = 0 %}
+                        {% endif %}
+
+                    <div class="card mb-4 border-success">
+                        <div class="card-header bg-success bg-opacity-10">
+                            <h5 class="mb-0 text-success">
+                                <i class="fas fa-chart-bar me-2"></i>3-Level Grading Analysis
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row text-center">
+                                <div class="col-md-4">
+                                    <div class="p-3 bg-success bg-opacity-10 rounded">
+                                        <i class="fas fa-check-circle fa-2x text-success mb-2"></i>
+                                        <h4 class="text-success mb-1">{{ correct_count }}</h4>
+                                        <p class="mb-0 text-success"><strong>Correct Answers</strong></p>
+                                        <small class="text-muted">{{ (correct_count * marks_per_question)|round(2) }} marks</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="p-3 bg-danger bg-opacity-10 rounded">
+                                        <i class="fas fa-times-circle fa-2x text-danger mb-2"></i>
+                                        <h4 class="text-danger mb-1">{{ incorrect_count }}</h4>
+                                        <p class="mb-0 text-danger"><strong>Incorrect Answers</strong></p>
+                                        <small class="text-muted">0 marks</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="p-3 bg-warning bg-opacity-10 rounded">
+                                        <i class="fas fa-question-circle fa-2x text-warning mb-2"></i>
+                                        <h4 class="text-warning mb-1">{{ unanswered_count }}</h4>
+                                        <p class="mb-0 text-warning"><strong>Unanswered</strong></p>
+                                        <small class="text-muted">0 marks</small>
+                                    </div>
+                                </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    {% endif %}
+
+                    <!-- Questions and Answers Section -->
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title mb-4">
+                                <i class="fas fa-list-alt me-2"></i>
+                                {% if exam.exam_format == 'objective' %}
+                                    MCQ Questions and Answers ({{ submission.questions|length }} Questions)
+                                {% else %}
+                                    Questions and Answers ({{ submission.questions|length }} Questions)
+                                {% endif %}
+                            </h5>
+                            
+                            {% for question in submission.questions %}
+                            {% set loop_index = loop.index0 %}
+                            {% set question_id = question.id|string if question.id else question._id|string %}
+                            {% set student_answer = submission.answers.get(question_id, '') %}
+                            
+                            <!-- Calculate correctness for objective questions -->
+                            {% if exam.exam_format == 'objective' and submission.is_graded %}
+                                {% set correct_answer = question.correct_answer %}
+                                {% if question.correct_answer is number or (question.correct_answer is string and question.correct_answer.isdigit()) %}
+                                    {% set correct_index = question.correct_answer|int %}
+                                    {% if question.options and correct_index >= 0 and correct_index < question.options|length %}
+                                        {% set correct_answer = question.options[correct_index] %}
+                                    {% endif %}
+                                {% endif %}
+                                {% set is_correct = (student_answer == correct_answer) if student_answer and correct_answer else false %}
+                                {% set awarded_marks = question.marks|default(2) if is_correct else 0 %}
+                            {% else %}
+                                {% set is_correct = false %}
+                                {% set awarded_marks = 0 %}
+                                {% set correct_answer = '' %}
+                            {% endif %}
+                            
+                            <div class="question-container mb-4 p-4 border rounded {% if exam.exam_format == 'objective' and submission.is_graded %}{% if is_correct %}border-success bg-light{% elif student_answer %}border-warning bg-light{% else %}border-secondary bg-light{% endif %}{% else %}bg-light{% endif %}">
+                                <!-- Question Header -->
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <h6 class="mb-0 flex-grow-1">
+                                        <span class="badge bg-primary me-2">Q{{ loop.index }}</span>
+                                        <strong>{{ question.question_text or question.text }}</strong>
+                                    </h6>
+                                    <div class="text-end">
+                                        <span class="badge bg-secondary">{{ exam.get_marks_per_question()|round(2) }} marks</span>
+                                        {% if submission.is_graded and exam.exam_format == 'objective' %}
+                                            {% if is_correct %}
+                                                <span class="badge bg-success ms-2">
+                                                    <i class="fas fa-check me-1"></i>Correct (+{{ exam.get_marks_per_question()|round(2) }})
+                                                </span>
+                                            {% elif student_answer %}
+                                                <span class="badge bg-danger ms-2">
+                                                    <i class="fas fa-times me-1"></i>Incorrect (0)
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-warning text-dark ms-2">
+                                                    <i class="fas fa-question me-1"></i>Not Answered (0)
+                                                </span>
+                                            {% endif %}
+                                        {% endif %}
+                                    </div>
+                                </div>
+
+                                {% if exam.exam_format == 'objective' and question.question_type == 'multiple_choice' %}
+                                    <!-- MCQ Display -->
+                                    <div class="row">
+                                        <div class="col-md-8">
+                                            <h6 class="text-primary mb-3">Options:</h6>
+                                            <div class="options-list">
+                                                {% for option in question.options %}
+                                                <div class="option p-3 mb-2 rounded border {% if submission.is_graded %}{% if option == correct_answer %}border-success bg-success bg-opacity-10{% elif option == student_answer and option != correct_answer %}border-primary bg-light{% else %}bg-light{% endif %}{% else %}bg-light{% endif %}">
+                                                    <div class="d-flex align-items-center">
+                                                        <i class="fas {% if option == student_answer %}fa-dot-circle text-primary{% else %}fa-circle text-muted{% endif %} me-3"></i>
+                                                        <span class="flex-grow-1">{{ option }}</span>
+                                                        {% if submission.is_graded %}
+                                                            {% if option == correct_answer %}
+                                                                <span class="badge bg-success ms-2">
+                                                                    <i class="fas fa-check me-1"></i>Correct Answer
+                                                                </span>
+                                                            {% elif option == student_answer and option != correct_answer %}
+                                                                <span class="badge bg-primary ms-2">
+                                                                    <i class="fas fa-arrow-left me-1"></i>Your Answer
+                                                                </span>
+                                                            {% endif %}
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            {% if submission.is_graded %}
+                                            <div class="grading-summary p-3 bg-light rounded">
+                                                <h6 class="mb-3"><i class="fas fa-calculator me-2"></i>Grading Summary</h6>
+                                                <div class="mb-2">
+                                                    <strong>Your Answer:</strong>
+                                                    {% if student_answer %}
+                                                        <span class="badge {% if is_correct %}bg-success{% else %}bg-danger{% endif %} ms-2">
+                                                            {{ student_answer }}
+                                                        </span>
+                                                    {% else %}
+                                                        <span class="badge bg-warning text-dark ms-2">Not Answered</span>
+                                                    {% endif %}
+                                                </div>
+                                                <div class="mb-2">
+                                                    <strong>Correct Answer:</strong>
+                                                    <span class="badge bg-success ms-2">{{ correct_answer }}</span>
+                                                </div>
+                                                <hr>
+                                                <div class="text-center">
+                                                    <h5 class="mb-1 {% if is_correct %}text-success{% elif student_answer %}text-danger{% else %}text-warning{% endif %}">
+                                                        {{ awarded_marks|round(2) }}/{{ exam.get_marks_per_question()|round(2) }}
+                                                    </h5>
+                                                    <small class="text-muted">
+                                                        {% if is_correct %}
+                                                            Level 1: Full Marks
+                                                        {% elif student_answer %}
+                                                            Level 3: No Marks
+                                                        {% else %}
+                                                            Level 3: No Marks (Unanswered)
+                                                        {% endif %}
+                                                    </small>
+                                                </div>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                {% else %}
+                                    <!-- Subjective Question Display -->
+                                    <div class="mb-3">
+                                        <div class="answer-section">
+                                            <h6 class="text-primary mb-2">Your Answer:</h6>
+                                            <div class="answer-box p-3 bg-white rounded border">
+                                                {% if student_answer %}
+                                                    <pre class="mb-0" style="white-space: pre-wrap; font-family: inherit;">{{ student_answer }}</pre>
+                                                {% else %}
+                                                    <em class="text-muted">No answer provided</em>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        
+                                        {% if submission.is_graded and question.model_answer %}
+                                        <div class="model-answer-section mt-3">
+                                            <h6 class="text-success mb-2">Model Answer:</h6>
+                                            <div class="model-answer-box p-3 bg-success bg-opacity-10 rounded border border-success">
+                                                <pre class="mb-0" style="white-space: pre-wrap; font-family: inherit;">{{ question.model_answer }}</pre>
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+
+                                    <!-- Marks Section for Subjective -->
+                                    {% if submission.is_graded %}
+                                    <div class="marks-section mt-3 p-2 bg-light rounded">
+                                        <div class="row align-items-center">
+                                            <div class="col-md-6">
+                                                <strong>Marks Obtained:</strong>
+                                                <span class="badge {% if awarded_marks > 0 %}bg-success{% else %}bg-danger{% endif %} ms-2">
+                                                    {{ awarded_marks|round(2) }}/{{ exam.get_marks_per_question()|round(2) }}
+                                                </span>
+                                            </div>
+                                            {% if question.feedback %}
+                                            <div class="col-md-6">
+                                                <strong>Feedback:</strong>
+                                                <span class="ms-2">{{ question.feedback }}</span>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    {% if submission.warning_count_at_submission and submission.warning_count_at_submission > 0 %}
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Note:</strong> {{ submission.warning_count_at_submission }} proctoring violation(s) were recorded during this exam.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Debug Toggle Button -->
+<div class="position-fixed" style="bottom: 20px; right: 20px;">
+    <button class="btn btn-sm btn-outline-info" onclick="toggleDebug()">
+        <i class="fas fa-bug"></i> Debug
+    </button>
+</div>
+
+<script>
+function toggleDebug() {
+    const debugDiv = document.getElementById('debug-info');
+    if (debugDiv.style.display === 'none') {
+        debugDiv.style.display = 'block';
+        console.log('Submission data debug:');
+        console.log('Detailed results count:', {{ submission.detailed_results|length if submission.detailed_results else 0 }});
+        console.log('Answers count:', {{ submission.answers|length if submission.answers else 0 }});
+        console.log('Questions count:', {{ submission.questions|length if submission.questions else 0 }});
+        console.log('Score:', {{ submission.score or 0 }});
+        console.log('Is graded:', {{ submission.is_graded|lower }});
+    } else {
+        debugDiv.style.display = 'none';
+    }
+}
+</script>
+
+<style>
+.question-container {
+    transition: all 0.2s ease;
+}
+
+.question-container:hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.option {
+    transition: all 0.2s ease;
+    cursor: default;
+}
+
+.grading-summary {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border: 1px solid #dee2e6;
+}
+
+.answer-box {
+    min-height: 60px;
+    background: #fafafa;
+}
+
+.model-answer-box {
+    min-height: 60px;
+}
+
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    border: 1px solid rgba(0, 0, 0, 0.125);
+}
+
+.badge {
+    font-size: 0.875rem;
+}
+</style>
+{% endblock %} 

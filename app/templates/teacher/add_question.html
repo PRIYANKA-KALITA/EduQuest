@@ -1,0 +1,206 @@
+{% extends "teacher/base.html" %}
+
+{% block title %}Add Question to Bank - EduQuest{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Add Question to Bank</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" id="questionForm" onsubmit="return validateForm()">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <!-- Question Type -->
+                        <div class="mb-3">
+                            <label class="form-label">Question Type</label>
+                            <select class="form-select" name="question_type" id="questionType" required>
+                                <option value="multiple_choice">Multiple Choice</option>
+                                <option value="subjective">Subjective</option>
+                            </select>
+                        </div>
+
+                        <!-- Question Text -->
+                        <div class="mb-3">
+                            <label class="form-label">Question Text</label>
+                            <textarea class="form-control" name="question_text" rows="3" required></textarea>
+                        </div>
+
+                        <!-- Marks -->
+                        <div class="mb-3">
+                            <label class="form-label">Points</label>
+                            <input type="number" class="form-control" name="marks" min="1" required>
+                        </div>
+
+                        <!-- Multiple Choice Options -->
+                        <div id="multipleChoiceSection">
+                            <div class="mb-3">
+                                <label class="form-label">Options</label>
+                                <div id="optionsContainer">
+                                    <div class="input-group mb-2">
+                                        <input type="text" class="form-control" name="options[]" required>
+                                        <button type="button" class="btn btn-danger remove-option">Remove</button>
+                                    </div>
+                                    <div class="input-group mb-2">
+                                        <input type="text" class="form-control" name="options[]" required>
+                                        <button type="button" class="btn btn-danger remove-option">Remove</button>
+                                    </div>
+                                </div>
+                                <button type="button" class="btn btn-secondary" id="addOption">Add Option</button>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Correct Answer</label>
+                                <select class="form-select" name="correct_answer" id="correctAnswer" required>
+                                    <option value="">Select correct option</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Subjective Answer -->
+                        <div id="subjectiveSection" style="display: none;">
+                            <div class="mb-3">
+                                <label class="form-label">Model Answer</label>
+                                <textarea class="form-control" name="model_answer" rows="3"></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Additional Metadata -->
+                        <div class="mb-3">
+                            <label class="form-label">Difficulty Level</label>
+                            <select class="form-select" name="difficulty_level">
+                                <option value="easy">Easy</option>
+                                <option value="medium">Medium</option>
+                                <option value="hard">Hard</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Subject</label>
+                            <input type="text" class="form-control" name="subject">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Topic</label>
+                            <input type="text" class="form-control" name="topic">
+                        </div>
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">Add Question</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const questionType = document.getElementById('questionType');
+    const multipleChoiceSection = document.getElementById('multipleChoiceSection');
+    const subjectiveSection = document.getElementById('subjectiveSection');
+    const addOptionBtn = document.getElementById('addOption');
+    const optionsContainer = document.getElementById('optionsContainer');
+    const correctAnswer = document.getElementById('correctAnswer');
+    
+    // Handle question type change
+    questionType.addEventListener('change', function() {
+        if (this.value === 'multiple_choice') {
+            multipleChoiceSection.style.display = 'block';
+            subjectiveSection.style.display = 'none';
+            document.querySelectorAll('[name="options[]"]').forEach(input => input.required = true);
+            document.getElementById('correctAnswer').required = true;
+            document.querySelector('[name="model_answer"]').required = false;
+        } else {
+            multipleChoiceSection.style.display = 'none';
+            subjectiveSection.style.display = 'block';
+            document.querySelectorAll('[name="options[]"]').forEach(input => input.required = false);
+            document.getElementById('correctAnswer').required = false;
+            document.querySelector('[name="model_answer"]').required = true;
+        }
+        updateCorrectAnswerOptions();
+    });
+    
+    // Add option
+    addOptionBtn.addEventListener('click', function() {
+        const optionDiv = document.createElement('div');
+        optionDiv.className = 'input-group mb-2';
+        optionDiv.innerHTML = `
+            <input type="text" class="form-control" name="options[]" required>
+            <button type="button" class="btn btn-danger remove-option">Remove</button>
+        `;
+        optionsContainer.appendChild(optionDiv);
+        updateCorrectAnswerOptions();
+    });
+    
+    // Remove option
+    optionsContainer.addEventListener('click', function(e) {
+        if (e.target.classList.contains('remove-option')) {
+            const options = document.querySelectorAll('[name="options[]"]');
+            if (options.length > 2) {
+                e.target.parentElement.remove();
+                updateCorrectAnswerOptions();
+            } else {
+                alert('Multiple choice questions must have at least 2 options.');
+            }
+        }
+    });
+    
+    // Update correct answer options
+    function updateCorrectAnswerOptions() {
+        const options = optionsContainer.querySelectorAll('input[name="options[]"]');
+        correctAnswer.innerHTML = '<option value="">Select correct option</option>';
+        options.forEach((option, index) => {
+            correctAnswer.innerHTML += `<option value="${index}">${option.value || `Option ${index + 1}`}</option>`;
+        });
+    }
+    
+    // Update correct answer options when option text changes
+    optionsContainer.addEventListener('input', function(e) {
+        if (e.target.name === 'options[]') {
+            updateCorrectAnswerOptions();
+        }
+    });
+    
+    // Initial setup
+    updateCorrectAnswerOptions();
+});
+
+// Form validation
+function validateForm() {
+    const questionType = document.getElementById('questionType').value;
+    
+    if (questionType === 'multiple_choice') {
+        const options = document.querySelectorAll('[name="options[]"]');
+        const correctAnswer = document.getElementById('correctAnswer').value;
+        
+        // Check if all options are filled
+        for (let option of options) {
+            if (!option.value.trim()) {
+                alert('Please fill in all options.');
+                return false;
+            }
+        }
+        
+        // Check if correct answer is selected
+        if (!correctAnswer) {
+            alert('Please select the correct answer.');
+            return false;
+        }
+    } else {
+        const modelAnswer = document.querySelector('[name="model_answer"]').value;
+        if (!modelAnswer.trim()) {
+            alert('Please provide a model answer for subjective questions.');
+            return false;
+        }
+    }
+    
+    return true;
+}
+</script>
+{% endblock %}
+{% endblock %} 

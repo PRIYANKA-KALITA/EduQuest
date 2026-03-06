@@ -1,0 +1,598 @@
+{% extends "teacher/base.html" %}
+
+{% block title %}Manage Questions - {{ exam.title }} - EduQuest{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h2 class="mb-0">Manage Questions - {{ exam.title }}</h2>
+                            <div class="d-flex align-items-center mt-1">
+                                <small class="me-3">Total Questions: {{ exam.questions|length if exam.questions else 0
+                                    }}</small>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{{ url_for('teacher.export_questions', exam_id=exam.id, format='json') }}"
+                                        class="btn btn-outline-light">
+                                        <i class="fas fa-file-code me-1"></i>Export JSON
+                                    </a>
+                                    <a href="{{ url_for('teacher.export_questions', exam_id=exam.id, format='pdf') }}"
+                                        class="btn btn-outline-light">
+                                        <i class="fas fa-file-pdf me-1"></i>Export PDF
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge bg-light text-primary d-block mb-1">{{ exam.exam_format|title }}
+                                Exam</span>
+                            <span class="badge bg-light text-primary d-block">Total Marks: {{ exam.total_marks }}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                    {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                    {% endfor %}
+                    {% endif %}
+                    {% endwith %}
+
+                    <!-- Bulk Import Section -->
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h3>Question Import & Generation</h3>
+                            <div class="btn-group" role="group">
+                                <button type="button" class="btn btn-outline-primary active" id="showBulkImport">Bulk
+                                    Import</button>
+                                <button type="button" class="btn btn-outline-primary" id="showAIGen">AI
+                                    Generation</button>
+                            </div>
+                        </div>
+
+                        <!-- Bulk Import Form -->
+                        <div id="bulkImportSection" class="card">
+                            <div class="card-body">
+                                <form method="POST" action="{{ url_for('teacher.import_questions', exam_id=exam.id) }}"
+                                    enctype="multipart/form-data">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <div class="mb-3">
+                                        <label for="questions_file" class="form-label">Import Questions from
+                                            JSON</label>
+                                        <input type="file" class="form-control" id="questions_file"
+                                            name="questions_file" accept=".json" required>
+                                        <div class="form-text">
+                                            Upload a JSON file containing questions.
+                                        </div>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-file-import me-2"></i>Import Questions
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- AI Generation Form -->
+                        <div id="aiGenSection" class="card" style="display: none;">
+                            <div class="card-body">
+                                <form id="aiGenForm" method="POST"
+                                    action="{{ url_for('teacher.generate_ai_questions', exam_id=exam.id) }}"
+                                    enctype="multipart/form-data">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Source Type</label>
+                                            <select class="form-select" name="source_type" id="sourceType" required>
+                                                <option value="link">Video Link (YouTube etc.)</option>
+                                                <option value="pdf">PDF File</option>
+                                                <option value="video">Video File</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6 mb-3" id="sourceFileInput" style="display: none;">
+                                            <label class="form-label">Upload File</label>
+                                            <input type="file" class="form-control" name="source_file" id="sourceFile">
+                                        </div>
+                                        <div class="col-md-6 mb-3" id="sourceLinkInput">
+                                            <label class="form-label">Source Link</label>
+                                            <input type="url" class="form-control" name="source_link" id="sourceLink"
+                                                placeholder="https://youtube.com/...">
+                                        </div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-4 mb-3">
+                                            <label class="form-label">Number of Questions (Limit: 50)</label>
+                                            <input type="number" class="form-control" name="num_questions" value="5"
+                                                min="1" max="50" required>
+                                        </div>
+                                        <div class="col-md-4 mb-3">
+                                            <label class="form-label">Question Type</label>
+                                            <select class="form-select" name="ai_question_type" required>
+                                                <option value="objective" {% if exam.is_objective() %}selected{% endif
+                                                    %}>Objective (MCQ)</option>
+                                                <option value="subjective" {% if not exam.is_objective() %}selected{%
+                                                    endif %}>Subjective</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4 mb-3">
+                                            <label class="form-label">Difficulty Level</label>
+                                            <select class="form-select" name="hardness" required>
+                                                <option value="easy">Easy (Foundational)</option>
+                                                <option value="medium" selected>Medium (Standard)</option>
+                                                <option value="hard">Hard (Advanced)</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="d-grid">
+                                        <button type="submit" class="btn btn-success" id="generateBtn">
+                                            <i class="fas fa-magic me-2"></i>Generate Questions with AI
+                                        </button>
+                                        <button class="btn btn-success d-none" type="button" id="generatingBtn"
+                                            disabled>
+                                            <span class="spinner-border spinner-border-sm me-2" role="status"
+                                                aria-hidden="true"></span>
+                                            Generating... (This may take a minute for PDFs/Videos)
+                                        </button>
+                                    </div>
+                                    <div id="aiStatusMessage" class="mt-3" style="display: none;"></div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Add Question Form -->
+                    <div class="mb-4">
+                        <h3>Add New Question</h3>
+                        <form method="POST" action="{{ url_for('teacher.add_question', exam_id=exam.id) }}"
+                            id="addQuestionForm">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                            <div class="mb-3">
+                                <label for="question_text" class="form-label">Question Text</label>
+                                <textarea class="form-control" id="question_text" name="question_text" rows="3"
+                                    required></textarea>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="marks" class="form-label">Marks</label>
+                                <input type="number" class="form-control" id="marks" name="marks" value="{{ exam.get_marks_per_question()|round(2) }}" readonly>
+                                <div class="form-text text-info">
+                                    <i class="fas fa-info-circle"></i> Marks are auto-calculated: {{ exam.total_marks }} Total Marks / {{ exam.num_questions_to_display }} Questions.
+                                </div>
+                            </div>
+
+                            {% if exam.is_objective() %}
+                            <div id="objective_options">
+                                <div class="mb-3">
+                                    <label class="form-label">Options</label>
+                                    <div id="options_container">
+                                        {% for i in range(4) %}
+                                        <div class="input-group mb-2">
+                                            <div class="input-group-text">
+                                                <input type="radio" name="correct_answer" value="{{ i }}" required>
+                                            </div>
+                                            <input type="text" class="form-control" name="options[]" required>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                <input type="hidden" name="question_type" value="multiple_choice">
+                            </div>
+                            {% else %}
+                            <div id="subjective_options">
+                                <div class="mb-3">
+                                    <label for="model_answer" class="form-label">Model Answer</label>
+                                    <textarea class="form-control" id="model_answer" name="model_answer"
+                                        rows="3"></textarea>
+                                    <div class="form-text">Optional: Provide a model answer for reference during
+                                        grading.</div>
+                                </div>
+                                <input type="hidden" name="question_type" value="subjective">
+                            </div>
+                            {% endif %}
+
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-plus-circle me-2"></i>Add Question
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Existing Questions -->
+                    <div>
+                        <h3>Existing Questions</h3>
+                        {% if exam.questions %}
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div>Total Questions: {{ exam.questions|length }}</div>
+                            <form action="{{ url_for('teacher.delete_all_questions', exam_id=exam.id) }}" method="POST"
+                                class="d-inline" id="deleteAllForm">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="button" class="btn btn-danger" onclick="confirmDeleteAll()">
+                                    <i class="fas fa-trash-alt me-2"></i>Delete All Questions
+                                </button>
+                            </form>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Question</th>
+                                        <th>Type</th>
+                                        <th>Marks</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for question in exam.questions %}
+                                    <tr data-question-id="{{ question._id }}">
+                                        <td>{{ question.question_text }}</td>
+                                        <td>
+                                            {% if question.question_type == 'multiple_choice' %}
+                                            <span class="badge bg-info">Multiple Choice</span>
+                                            {% else %}
+                                            <span class="badge bg-warning">Subjective</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ exam.get_marks_per_question()|round(2) }}</td>
+                                        <td>
+                                            <button class="btn btn-sm btn-primary"
+                                                onclick="editQuestion('{{ question._id }}')">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <form
+                                                action="{{ url_for('teacher.delete_question', exam_id=exam.id, question_id=question._id) }}"
+                                                method="POST" class="d-inline">
+                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                <button type="submit" class="btn btn-sm btn-danger"
+                                                    onclick="return confirm('Are you sure you want to delete this question?')">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                    {% if question.question_type == 'multiple_choice' %}
+                                    <tr class="question-details" data-parent-id="{{ question._id }}">
+                                        <td colspan="4">
+                                            <div class="ms-4">
+                                                <strong>Options:</strong>
+                                                <ol type="A">
+                                                    {% for option in question.options %}
+                                                    <li {% if loop.index0|string==question.correct_answer|string or
+                                                        option==question.correct_answer %}class="text-success fw-bold"
+                                                        {% endif %}>
+                                                        {{ option }}
+                                                    </li>
+                                                    {% endfor %}
+                                                </ol>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% else %}
+                                    <tr class="question-details" data-parent-id="{{ question._id }}">
+                                        <td colspan="4">
+                                            <div class="ms-4">
+                                                <strong>Model Answer:</strong>
+                                                <div class="model-answer mt-2">{{ question.model_answer }}</div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endif %}
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <div class="alert alert-info">
+                            No questions added yet. Use the form above to add questions.
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Question Modal -->
+<div class="modal fade" id="editQuestionModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Question</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editQuestionForm" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-3">
+                        <label for="edit_question_text" class="form-label">Question Text</label>
+                        <textarea class="form-control" id="edit_question_text" name="question_text" rows="3"
+                            required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_marks" class="form-label">Marks</label>
+                        <input type="number" class="form-control" id="edit_marks" name="marks" value="{{ exam.get_marks_per_question()|round(2) }}" readonly>
+                        <div class="form-text text-info small">Marks are auto-calculated based on exam settings.</div>
+                    </div>
+                    {% if exam.is_objective() %}
+                    <div id="edit_objective_options">
+                        <div class="mb-3">
+                            <label class="form-label">Options</label>
+                            <div id="edit_options_container">
+                                {% for i in range(4) %}
+                                <div class="input-group mb-2">
+                                    <div class="input-group-text">
+                                        <input type="radio" name="correct_answer" value="{{ i }}" required>
+                                    </div>
+                                    <input type="text" class="form-control" name="options[]" required>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div id="edit_subjective_options">
+                        <div class="mb-3">
+                            <label for="edit_model_answer" class="form-label">Model Answer</label>
+                            <textarea class="form-control" id="edit_model_answer" name="model_answer"
+                                rows="3"></textarea>
+                            <div class="form-text">Optional: Provide a model answer for reference during grading.</div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" form="editQuestionForm" class="btn btn-primary">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    function confirmDeleteAll() {
+        if (confirm('Are you sure you want to delete ALL questions from this exam? This action cannot be undone.')) {
+            document.getElementById('deleteAllForm').submit();
+        }
+    }
+
+    function editQuestion(questionId) {
+        // Get question data and populate the modal
+        const form = document.getElementById('editQuestionForm');
+        form.action = "{{ url_for('teacher.update_question', exam_id=exam.id, question_id='PLACEHOLDER') }}".replace('PLACEHOLDER', questionId);
+
+        // Find the question row and its details row
+        const questionRow = document.querySelector(`tr[data-question-id="${questionId}"]`);
+        const detailsRow = document.querySelector(`tr[data-parent-id="${questionId}"]`);
+
+        if (questionRow && detailsRow) {
+            // Set question text and marks
+            document.getElementById('edit_question_text').value = questionRow.querySelector('td:first-child').textContent.trim();
+            document.getElementById('edit_marks').value = questionRow.querySelector('td:nth-child(3)').textContent.trim();
+
+            {% if exam.is_objective() %}
+            // Handle multiple choice options
+            const optionsContainer = detailsRow.querySelector('ol');
+            const options = Array.from(optionsContainer.querySelectorAll('li')).map(li => li.textContent.trim());
+            const correctAnswer = Array.from(optionsContainer.querySelectorAll('li')).findIndex(li => li.classList.contains('text-success'));
+
+            const optionInputs = document.querySelectorAll('#edit_options_container input[type="text"]');
+            const radioInputs = document.querySelectorAll('#edit_options_container input[type="radio"]');
+
+            options.forEach((option, index) => {
+                if (optionInputs[index]) optionInputs[index].value = option;
+                if (radioInputs[index]) radioInputs[index].checked = (index === correctAnswer);
+            });
+            {% else %}
+            // Handle subjective question model answer
+            const modelAnswer = detailsRow.querySelector('.model-answer');
+            if (modelAnswer) {
+                document.getElementById('edit_model_answer').value = modelAnswer.textContent.trim();
+            }
+            {% endif %}
+        }
+
+        // Show the modal
+        const modal = new bootstrap.Modal(document.getElementById('editQuestionModal'));
+        modal.show();
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        // AI Generation Toggle
+        const showBulkImport = document.getElementById('showBulkImport');
+        const showAIGen = document.getElementById('showAIGen');
+        const bulkImportSection = document.getElementById('bulkImportSection');
+        const aiGenSection = document.getElementById('aiGenSection');
+
+        if (showBulkImport && showAIGen) {
+            showBulkImport.addEventListener('click', () => {
+                showBulkImport.classList.add('active');
+                showAIGen.classList.remove('active');
+                bulkImportSection.style.display = 'block';
+                aiGenSection.style.display = 'none';
+            });
+
+            showAIGen.addEventListener('click', () => {
+                showAIGen.classList.add('active');
+                showBulkImport.classList.remove('active');
+                aiGenSection.style.display = 'block';
+                bulkImportSection.style.display = 'none';
+            });
+
+            // Handle active tab from server
+            const activeTab = "{{ active_tab }}";
+            if (activeTab === 'ai') {
+                showAIGen.click();
+            }
+        }
+
+        // AI Generation Source Type Toggle
+        const sourceType = document.getElementById('sourceType');
+        const sourceFileInput = document.getElementById('sourceFileInput');
+        const sourceLinkInput = document.getElementById('sourceLinkInput');
+        const sourceFile = document.getElementById('sourceFile');
+        const sourceLink = document.getElementById('sourceLink');
+
+        if (sourceType) {
+            sourceType.addEventListener('change', () => {
+                if (sourceType.value === 'link') {
+                    sourceFileInput.style.display = 'none';
+                    sourceLinkInput.style.display = 'block';
+                    sourceFile.required = false;
+                    sourceLink.required = true;
+                } else {
+                    sourceFileInput.style.display = 'block';
+                    sourceLinkInput.style.display = 'none';
+                    sourceFile.required = true;
+                    sourceLink.required = false;
+                }
+            });
+        }
+
+        // AI Generation Loading State
+        const aiGenForm = document.getElementById('aiGenForm');
+        const generateBtn = document.getElementById('generateBtn');
+        const generatingBtn = document.getElementById('generatingBtn');
+        const aiStatusMessage = document.getElementById('aiStatusMessage');
+
+        function showStatus(message, type = 'info') {
+            aiStatusMessage.innerHTML = `
+                <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            `;
+            aiStatusMessage.style.display = 'block';
+        }
+
+        function resetGenerateBtn() {
+            generateBtn.classList.remove('d-none');
+            generatingBtn.classList.add('d-none');
+        }
+
+        if (aiGenForm) {
+            // Check for success parameter in URL to show success message after refresh
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('ai_success')) {
+                showStatus('✅ Questions generated and added successfully!', 'success');
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+
+            let pollingInterval;
+            let timerInterval;
+            let initialCount = parseInt("{{ exam.questions|length if exam.questions else 0 }}");
+
+            function startTimer() {
+                let secs = 0;
+                timerInterval = setInterval(() => {
+                    secs++;
+                    if (generatingBtn) {
+                        generatingBtn.innerHTML = `
+                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                            Generating... (${secs}s elapsed, please wait)
+                        `;
+                    }
+                }, 1000);
+            }
+
+            async function checkQuestionCount() {
+                try {
+                    // Check AI Status first
+                    const statusResponse = await fetch("{{ url_for('teacher.get_ai_status', exam_id=exam.id) }}");
+                    const statusData = await statusResponse.json();
+                    
+                    if (statusData.status === 'failed') {
+                        clearInterval(pollingInterval);
+                        clearInterval(timerInterval);
+                        resetGenerateBtn();
+                        showStatus(`❌ AI Failed: ${statusData.error || 'Unknown error occurred.'}`, 'danger');
+                        return;
+                    }
+
+                    const response = await fetch("{{ url_for('teacher.get_question_count', exam_id=exam.id) }}");
+                    const data = await response.json();
+                    const currentCount = parseInt(data.count) || 0;
+                    
+                    if (currentCount > initialCount || statusData.status === 'completed') {
+                        clearInterval(pollingInterval);
+                        clearInterval(timerInterval);
+                        const newQ = currentCount - initialCount;
+                        showStatus(`✅ ${newQ > 0 ? newQ : ''} question(s) added! Refreshing page...`, 'success');
+                        setTimeout(() => {
+                            window.location.href = window.location.pathname + '?ai_success=1&tab=ai';
+                        }, 1500);
+                    }
+                } catch (e) {
+                    console.error("Polling error:", e);
+                }
+            }
+
+            aiGenForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+
+                aiStatusMessage.style.display = 'none';
+                generateBtn.classList.add('d-none');
+                generatingBtn.classList.remove('d-none');
+
+                const formData = new FormData(aiGenForm);
+                initialCount = parseInt("{{ exam.questions|length if exam.questions else 0 }}");
+
+                // Start live timer
+                if (timerInterval) clearInterval(timerInterval);
+                startTimer();
+
+                // Start polling every 3 seconds
+                if (pollingInterval) clearInterval(pollingInterval);
+                pollingInterval = setInterval(checkQuestionCount, 3000);
+
+                // Auto-stop after 180 seconds (match backend total model retry time)
+                const autoStopTimer = setTimeout(() => {
+                    if (pollingInterval) {
+                        clearInterval(pollingInterval);
+                        clearInterval(timerInterval);
+                        resetGenerateBtn();
+                        showStatus('⚠️ Generation is taking longer than expected. Please check your questions list in a moment; the process may still be running in the background.', 'warning');
+                    }
+                }, 180000); 
+
+                try {
+                    const response = await fetch(aiGenForm.action, {
+                        method: 'POST',
+                        body: formData,
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    });
+
+                    const result = await response.json().catch(() => ({}));
+
+                    if (result.success === false) {
+                        // Generation failed outright
+                        clearInterval(pollingInterval);
+                        clearInterval(timerInterval);
+                        clearTimeout(autoStopTimer);
+                        resetGenerateBtn();
+                        showStatus(`❌ Error: ${result.error || 'Unknown error occurred.'}`, 'danger');
+                    } else {
+                        // Started correctly - poll will take over
+                        showStatus('⏳ AI is analyzing your content... Extracting and processing frames.', 'info');
+                    }
+                } catch (error) {
+                    console.error('Request error:', error);
+                    showStatus('⏳ AI is processing in the background... Please wait.', 'info');
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

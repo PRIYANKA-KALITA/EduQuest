@@ -1,0 +1,319 @@
+{% extends "teacher/base.html" %}
+
+{% block title %}Dashboard - EduQuest{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4">Welcome, {{ current_user.username }}!</h1>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Active Exams</h5>
+                    <p class="card-text display-4">{{ active_exams_count }}</p>
+                    <a href="{{ url_for('teacher.exams') }}" class="btn btn-primary">View Exams</a>
+                    <button type="button" class="btn btn-info ms-2" data-bs-toggle="modal"
+                        data-bs-target="#aiQuickModal">
+                        <i class="fas fa-robot"></i> AI Generator
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Total Students</h5>
+                    <p class="card-text display-4">{{ total_students }}</p>
+                    <a href="{{ url_for('teacher.students') }}" class="btn btn-primary">View Students</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Completion Rate</h5>
+                    <p class="card-text display-4">{{ completion_rate }}%</p>
+                    <a href="{{ url_for('teacher.analytics') }}" class="btn btn-primary">View Analytics</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Pending Reviews</h5>
+                    <p class="card-text display-4">{{ pending_reviews }}</p>
+                    <a href="{{ url_for('teacher.exams') }}" class="btn btn-primary">Review Now</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Exams Section -->
+    {% if active_exams %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-play-circle"></i> Currently Active Exams
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for exam in active_exams %}
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="card border-success">
+                                <div class="card-body">
+                                    <h6 class="card-title">{{ exam.title }}</h6>
+                                    <p class="card-text text-muted small">
+                                        <i class="fas fa-clock"></i> {{ exam.duration }} min
+                                        {% if exam.exam_format == 'objective' %}
+                                        <span class="badge bg-warning ms-2">Objective</span>
+                                        {% else %}
+                                        <span class="badge bg-info ms-2">Subjective</span>
+                                        {% endif %}
+                                    </p>
+                                    <p class="card-text small">
+                                        <strong>End:</strong> {{ exam.end_time.strftime('%Y-%m-%d %H:%M') if
+                                        exam.end_time else 'Not set' }}
+                                    </p>
+                                    <div class="d-flex gap-2">
+                                        <a href="{{ url_for('teacher.exam_details', exam_id=exam.id) }}"
+                                            class="btn btn-sm btn-success">View</a>
+                                        <a href="{{ url_for('teacher.export_excel', exam_id=exam.id) }}"
+                                            class="btn btn-sm btn-outline-success" title="Export Excel">
+                                            <i class="fas fa-file-excel"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div class="text-center mt-3">
+                        <a href="{{ url_for('teacher.exams') }}" class="btn btn-success">
+                            <i class="fas fa-eye"></i> View All Exams
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Recent Submissions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Recent Submissions</h5>
+                </div>
+                <div class="card-body">
+                    {% if recent_submissions %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Student Name</th>
+                                    <th>ID</th>
+                                    <th>Status</th>
+                                    <th>Date</th>
+                                    <th>Class</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for submission in recent_submissions %}
+                                <tr>
+                                    <td>{{ submission.student.username if submission.student else 'Unknown' }}</td>
+                                    <td>{{ submission.student.student_id if submission.student and
+                                        submission.student.student_id else 'N/A' }}</td>
+                                    <td>
+                                        {% if submission.is_graded %}
+                                        <span class="badge bg-success">Graded</span>
+                                        {% else %}
+                                        <span class="badge bg-warning">Pending</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ submission.submitted_at.strftime('%Y-%m-%d %H:%M') if submission.submitted_at
+                                        else 'N/A' }}</td>
+                                    <td>{{ submission.student.class_name if submission.student else 'N/A' }}</td>
+                                    <td>
+                                        {% if submission.student and submission.student.id %}
+                                        <a href="{{ url_for('teacher.view_student', student_id=submission.student.id) }}"
+                                            class="btn btn-sm btn-primary">
+                                            View
+                                        </a>
+                                        {% else %}
+                                        <button class="btn btn-sm btn-secondary" disabled>View</button>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-file-alt fa-3x text-muted mb-3"></i>
+                        <h6 class="text-muted">No recent submissions</h6>
+                        <p class="text-muted">Submissions will appear here when students submit exams</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Exams -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Recent Exams</h5>
+                </div>
+                <div class="card-body">
+                    {% if recent_exams %}
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Title</th>
+                                    <th>Duration</th>
+                                    <th>End Date</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for exam in recent_exams %}
+                                <tr>
+                                    <td>{{ exam.title }}</td>
+                                    <td>{{ exam.duration }} minutes</td>
+                                    <td>{{ exam.end_time.strftime('%Y-%m-%d %H:%M') if exam.end_time else 'Not set' }}
+                                    </td>
+                                    <td>
+                                        {% if exam.is_active %}
+                                        <span class="badge bg-success">Active</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">Inactive</span>
+                                        {% endif %}
+                                        <br>
+                                        <small class="text-muted">
+                                            {% if exam.exam_format == 'objective' %}
+                                            <i class="fas fa-check-circle"></i> Objective
+                                            {% else %}
+                                            <i class="fas fa-edit"></i> Subjective
+                                            {% endif %}
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('teacher.exam_details', exam_id=exam.id) }}"
+                                            class="btn btn-sm btn-primary me-1">View</a>
+                                        <a href="{{ url_for('teacher.manage_questions', exam_id=exam.id) }}"
+                                            class="btn btn-sm btn-info me-1">
+                                            <i class="fas fa-tasks"></i> Questions
+                                        </a>
+                                        <a href="{{ url_for('teacher.export_excel', exam_id=exam.id) }}"
+                                            class="btn btn-sm btn-success me-1" title="Export Excel">
+                                            <i class="fas fa-file-excel"></i>
+                                        </a>
+                                        <button type="button" class="btn btn-sm btn-danger"
+                                            onclick="confirmDelete('{{ exam.id }}', '{{ exam.title }}')">
+                                            <i class="fas fa-trash"></i> Delete
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted">No exams created yet.</p>
+                    <a href="{{ url_for('teacher.create_exam') }}" class="btn btn-primary">Create Your First Exam</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete confirmation modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete the exam "<span id="examTitle"></span>"?</p>
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <strong>Warning:</strong> This action cannot be undone. All associated submissions will also be
+                    deleted.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="deleteForm" method="POST" style="display: inline;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash"></i> Delete Exam
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- AI Quick Access Modal -->
+<div class="modal fade" id="aiQuickModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-robot text-info"></i> AI Question Generator</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Select an exam to generate questions for using AI:</p>
+                <div class="list-group">
+                    {% for exam in recent_exams %}
+                    <a href="{{ url_for('teacher.manage_questions', exam_id=exam.id) }}?tab=ai"
+                        class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">{{ exam.title }}</h6>
+                            <small>{{ exam.exam_format|title }}</small>
+                        </div>
+                        <small class="text-muted">Open AI Generator for this exam</small>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function confirmDelete(examId, examTitle) {
+        // Set the exam title in the modal
+        document.getElementById('examTitle').textContent = examTitle;
+
+        // Set the form action URL
+        document.getElementById('deleteForm').action = '/teacher/exam/' + examId + '/delete';
+
+        // Show the modal
+        var deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+        deleteModal.show();
+    }
+</script>
+{% endblock %}

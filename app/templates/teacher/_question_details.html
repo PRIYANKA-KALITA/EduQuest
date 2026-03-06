@@ -1,0 +1,58 @@
+<div class="question-details">
+    <div class="mb-3">
+        <label class="fw-bold">Question Text:</label>
+        <p>{{ question.text }}</p>
+    </div>
+
+    <div class="row mb-3">
+        <div class="col-md-4">
+            <label class="fw-bold">Type:</label>
+            <p>{{ question.type|title }}</p>
+        </div>
+        <div class="col-md-4">
+            <label class="fw-bold">Points:</label>
+            <p>{{ question.points }}</p>
+        </div>
+        <div class="col-md-4">
+            <label class="fw-bold">Difficulty:</label>
+            <p>{{ question.difficulty_level|title }}</p>
+        </div>
+    </div>
+
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <label class="fw-bold">Subject:</label>
+            <p>{{ question.subject or 'N/A' }}</p>
+        </div>
+        <div class="col-md-6">
+            <label class="fw-bold">Topic:</label>
+            <p>{{ question.topic or 'N/A' }}</p>
+        </div>
+    </div>
+
+    {% if question.type == 'multiple_choice' %}
+    <div class="mb-3">
+        <label class="fw-bold">Options:</label>
+        <ul class="list-group">
+            {% for option in question.options %}
+            <li class="list-group-item {% if loop.index0 == question.correct_answer %}list-group-item-success{% endif %}">
+                {{ option }}
+                {% if loop.index0 == question.correct_answer %}
+                <span class="badge bg-success float-end">Correct Answer</span>
+                {% endif %}
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% else %}
+    <div class="mb-3">
+        <label class="fw-bold">Model Answer:</label>
+        <p>{{ question.model_answer or 'No model answer provided' }}</p>
+    </div>
+    {% endif %}
+
+    <div class="mb-3">
+        <label class="fw-bold">Created:</label>
+        <p>{{ question.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+    </div>
+</div> 

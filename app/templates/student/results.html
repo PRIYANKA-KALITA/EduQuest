@@ -1,0 +1,153 @@
+{% extends "student/base.html" %}
+
+{% block title %}My Results - EduQuest{% endblock %}
+
+{% block page_title %}Exam Results{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title mb-4">
+                        <i class="fas fa-chart-line me-2"></i>Graded Exam Results
+                    </h5>
+                    
+                    {% if submissions %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Exam Title</th>
+                                        <th>Submitted</th>
+                                        <th>Score</th>
+                                        <th>Grade</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                            {% for submission in submissions %}
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <i class="fas fa-file-alt text-primary me-2"></i>
+                                    <div>
+                                                    <h6 class="mb-0">{{ submission.exam.title }}</h6>
+                                                    <small class="text-muted">{{ submission.exam.exam_format|title }} Exam</small>
+                                    </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <small class="text-muted">
+                                                {{ submission.submitted_at.strftime('%b %d, %Y') }}<br>
+                                                {{ submission.submitted_at.strftime('%I:%M %p') }}
+                                            </small>
+                                        </td>
+                                                                <td>
+                            <span class="fw-bold">
+                                {% if submission.calculated_percentage is defined %}
+                                    {{ "%.1f"|format(submission.calculated_percentage) }}%
+                                {% elif submission.max_score and submission.max_score > 0 %}
+                                    {{ "%.1f"|format((submission.score / submission.max_score * 100)) }}%
+                                {% elif submission.percentage is not none %}
+                                    {{ "%.1f"|format(submission.percentage) }}%
+                                {% elif submission.score is not none %}
+                                    {{ "%.1f"|format(submission.score) }}%
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </span>
+                        </td>
+                                        <td>
+                                            <!-- Calculate percentage for grade display -->
+                                            {% if submission.calculated_percentage is defined %}
+                                                {% set percentage = submission.calculated_percentage %}
+                                            {% elif submission.max_score and submission.max_score > 0 %}
+                                                {% set percentage = (submission.score / submission.max_score * 100) %}
+                                            {% elif submission.percentage is not none %}
+                                                {% set percentage = submission.percentage %}
+                                            {% else %}
+                                                {% set percentage = submission.score or 0 %}
+                                            {% endif %}
+                                            
+                                            {% if percentage >= 70 %}
+                                                <span class="badge bg-success fs-6 px-3 py-2">Grade A</span>
+                                            {% elif percentage >= 35 %}
+                                                <span class="badge bg-warning fs-6 px-3 py-2">Grade B</span>
+                                            {% else %}
+                                                <span class="badge bg-danger fs-6 px-3 py-2">Grade F</span>
+                                            {% endif %}
+                                        </td>
+                                                                <td>
+                            <!-- Calculate status based on percentage -->
+                            {% if submission.calculated_percentage is defined %}
+                                {% set percentage = submission.calculated_percentage %}
+                            {% elif submission.max_score and submission.max_score > 0 %}
+                                {% set percentage = (submission.score / submission.max_score * 100) %}
+                            {% elif submission.percentage is not none %}
+                                {% set percentage = submission.percentage %}
+                            {% else %}
+                                {% set percentage = submission.score or 0 %}
+                            {% endif %}
+                            
+                            {% if percentage >= 35 %}
+                                <span class="badge bg-success">
+                                    <i class="fas fa-check me-1"></i>PASS
+                                </span>
+                            {% else %}
+                                <span class="badge bg-danger">
+                                    <i class="fas fa-times me-1"></i>FAIL
+                                </span>
+                            {% endif %}
+                        </td>
+                                        <td>
+                                            <a href="{{ url_for('student.submission_result', submission_id=submission.id) }}" 
+                                               class="btn btn-outline-primary btn-sm">
+                                                <i class="fas fa-eye me-1"></i>View Details
+                                            </a>
+                                        </td>
+                                    </tr>
+                            {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-chart-line fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No graded results yet</h5>
+                            <p class="text-muted">Your exam submissions are being reviewed. Results will appear here once grading is complete.</p>
+                            <a href="{{ url_for('student.exams') }}" class="btn btn-primary mt-3">
+                                <i class="fas fa-plus me-2"></i>Take an Exam
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.table th {
+    border-top: none;
+    font-weight: 600;
+    color: #495057;
+}
+
+.badge {
+    font-size: 0.875rem;
+}
+
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    border: 1px solid rgba(0, 0, 0, 0.125);
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(0, 0, 0, 0.025);
+}
+</style>
+{% endblock %} 
